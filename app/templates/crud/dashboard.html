@@ -1,0 +1,254 @@
+<!--
+AI declaration:
+Github copilot was used for portions of the planning, research, feedback and editing of the software artefact. Mostly utilised for syntax, logic and error checking with ChatGPT and Claude Sonnet 4.5 used as the models.
+
+This HTML page is for the administrator dashboard form, using Jinja2 and py Flask templating, with Bootstrap 5 for styling and FontAwesome for icons.
+-->
+{% extends "base.html" %}
+{% block title %}Dashboard - Records Manager{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2 class="mb-4">
+            <i class=""></i> Patient Records Dashboard
+        </h2>
+        <!-- This section is for quick access buttons for creating a new patient record, and managing account settings, (Anthropic, 2025). -->
+        <div class="mb-3">
+            <a href="{{ url_for('crud.create_patient') }}" class="btn btn-success">
+                <i class="fas fa-plus-circle"></i> New Patient Record
+            </a>
+            <a href="{{ url_for('auth.userpage') }}" class="btn btn-info">
+                <i class="fas fa-user-cog"></i> Account Settings
+            </a>
+        </div>
+        <!-- This card handles search and filtering, (Anthropic, 2025). -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="fas fa-search"></i> Search & Filter
+            </div>
+            <div class="card-body">
+                <form method="GET" action="{{ url_for('crud.dashboard') }}" class="row g-3">
+                    <div class="col-md-4">
+                        {{ search_form.search_field.label(class="form-label") }}
+                        {{ search_form.search_field(class="form-control") }}
+                    </div>
+                    <div class="col-md-4">
+                        {{ search_form.search_value.label(class="form-label") }}
+                        {{ search_form.search_value(class="form-control", placeholder="Enter search value") }}
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary me-2">
+                            <i class="fas fa-search"></i> Search
+                        </button>
+                        <a href="{{ url_for('crud.dashboard') }}" class="btn btn-secondary">
+                            <i class="fas fa-redo"></i> Reset
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <!-- This alert displays the number of records and records per page, (Anthropic, 2025). -->
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i> 
+            Showing <strong>{{ records|length }}</strong> of <strong>{{ total }}</strong> total records
+            {% if search_field and search_value %}
+                (filtered by {{ search_field }}: {{ search_value }})
+            {% endif %}
+        </div>
+        <!-- This card presents the patient records in a styled table, showing key details and providing action buttons for viewing, editing, or deleting each record individually, (Anthropic, 2025). -->
+        {% if records %}
+        <div class="card">
+            <div class="card-body table-responsive">
+                <table class="table table-hover table-bordered">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>ID</th>
+                            <th>Gender</th>
+                            <th>Age</th>
+                            <th>Ever Married</th>
+                            <th>Work Type</th>
+                            <th>Residence</th>
+                            <th>Hypertension</th>
+                            <th>Heart Disease</th>
+                            <th>Glucose</th>
+                            <th>BMI</th>
+                            <th>Smoking</th>
+                            <th>Stroke</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in records %}
+                        <tr>
+                            <td>{{ record.id if record.id else 'N/A' }}</td>
+                            <td>
+                                {% if record.gender == 'Male' %}
+                                    <i class="fas fa-mars text-primary"></i> Male
+                                {% elif record.gender == 'Female' %}
+                                    <i class="fas fa-venus text-danger"></i> Female
+                                {% else %}
+                                    <i class="fas fa-genderless"></i> Other
+                                {% endif %}
+                            </td>
+                            <td>{{ record.age }}</td>
+                            <td>
+                                {% if record.ever_married == 'Yes' %}
+                                    <span class="badge bg-info">Yes</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">No</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <small>{{ record.work_type }}</small>
+                            </td>
+                            <td>
+                                {% if record.Residence_type == 'Urban' %}
+                                    <i class="fas fa-city"></i> Urban
+                                {% else %}
+                                    <i class="fas fa-home"></i> Rural
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if record.hypertension == 1 %}
+                                    <span class="badge bg-warning">Yes</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">No</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if record.heart_disease == 1 %}
+                                    <span class="badge bg-warning">Yes</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">No</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ "%.1f"|format(record.avg_glucose_level) }}</td>
+                            <td>{{ record.bmi }}</td>
+                            <td>
+                                {% if record.smoking_status == 'smokes' %}
+                                    <span class="badge bg-danger">Smokes</span>
+                                {% elif record.smoking_status == 'formerly smoked' %}
+                                    <span class="badge bg-warning">Former</span>
+                                {% elif record.smoking_status == 'never smoked' %}
+                                    <span class="badge bg-success">Never</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Unknown</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if record.stroke == 1 %}
+                                    <span class="badge bg-danger">
+                                        <i class=""></i> Yes
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-success">No</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a href="{{ url_for('crud.view_patient', patient_id=record._id) }}" 
+                                       class="btn btn-info" title="View">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{{ url_for('crud.edit_patient', patient_id=record._id) }}" 
+                                       class="btn btn-warning" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-danger" 
+                                            onclick="confirmDelete('{{ record._id }}')" title="Delete">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- Navigation bar, for pages of records, (Anthropic, 2025). -->
+        {% if total_pages > 1 %}
+        <nav aria-label="Page navigation" class="mt-4">
+            <ul class="pagination justify-content-center">
+                {% if page > 1 %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('crud.dashboard', page=page-1, search_field=search_field, search_value=search_value) }}">
+                        Previous
+                    </a>
+                </li>
+                {% endif %}
+                {% for p in range(1, total_pages + 1) %}
+                    {% if p == page %}
+                        <li class="page-item active"><span class="page-link">{{ p }}</span></li>
+                    {% elif p <= 3 or p > total_pages - 3 or (p >= page - 1 and p <= page + 1) %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('crud.dashboard', page=p, search_field=search_field, search_value=search_value) }}">{{ p }}</a>
+                        </li>
+                    {% elif p == 4 or p == total_pages - 3 %}
+                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                    {% endif %}
+                {% endfor %}
+                {% if page < total_pages %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('crud.dashboard', page=page+1, search_field=search_field, search_value=search_value) }}">
+                        Next
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+        {% else %}
+        <div class="alert alert-warning text-center">
+            <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+            <h4>No Records Found</h4>
+            <p>There are no patient records in the database. 
+               {% if total == 0 %}
+               CSV data will be imported automatically on next application restart, or you can 
+               {% endif %}
+               <a href="{{ url_for('crud.create_patient') }}" class="alert-link">create a new record</a>.
+            </p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+<!-- Delete Confirmation Modal, a dialog prompt for confirmation of deletion of a record, along with all related data,(Anthropic, 2025). -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle"></i> Confirm Deletion
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete this patient record?</p>
+                <p class="text-danger"><strong>This action cannot be undone.</strong></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteForm" method="POST" style="display: inline;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<!-- This script defines the "confirmDelete" function, which sets the form action for deletion and displays the confirmation modal for the record removal, (Anthropic, 2025). -->
+<script>
+    function confirmDelete(patientId) {
+        const deleteForm = document.getElementById('deleteForm');
+        deleteForm.action = `/patient/${patientId}/delete`;
+        
+        const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+        modal.show();
+    }
+</script>
+{% endblock %}
+
