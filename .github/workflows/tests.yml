@@ -100,4 +100,14 @@ jobs:
         echo "Form validation tests completed" >> $GITHUB_STEP_SUMMARY
         echo "Model tests completed" >> $GITHUB_STEP_SUMMARY
         echo "Authentication tests completed" >> $GITHUB_STEP_SUMMARY
+        - name: Run Bandit (SAST)
+    
+    - run: |
+        bandit -r app/ -ll -f html -o bandit-report.html
+
+    - name: Upload Bandit report
+      uses: actions/upload-artifact@v4
+      with:
+        name: bandit-report
+        path: bandit-report.html
 
