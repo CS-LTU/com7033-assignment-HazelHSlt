@@ -253,21 +253,21 @@ def import_csv_data(app): # (Anthropic, 2025)
 def initialize_database(app): # (Anthropic, 2025)
     with app.app_context():
         try:
-            # Import admin models to ensure they're registered with SQLAlchemy
+            # Import admin models to ensure they're registered with SQLAlchemy.
             from app.admin_models import AdminUser, AdminAuditLog
             
-            # Initialize both databases (users.db and admin.db via binds)
+            # Initialize both databases (users.db and admin.db via binds) and use create_all with checkfirst to avoid errors if tables exist.
             db.create_all()
             print("Databases (users.db and admin.db) initialized successfully.")
             
-            # Check user counts
+            # Check user counts.
             user_count = User.query.count()
             print(f"Standard user count: {user_count}")
             
-            # Create admin user if needed
+            # Create admin user if needed.
             create_admin_user(app)
             
-            # Import CSV data if needed
+            # Import CSV data if needed.
             import_csv_data(app)
             
         except Exception as e:

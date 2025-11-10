@@ -37,7 +37,7 @@ def dashboard(): # (Anthropic, 2025)
     if collection is None:
         flash('MongoDB database is not connected. Please ensure MongoDB is running before accessing patient records.', 'danger')
         flash('To start MongoDB: cd mongodb_portable && .\\start_mongodb.ps1', 'info')
-        return render_template('crud/dashboard.html', records=[], total=0, page=1, per_page=20)
+        return render_template('crud/dashboard.html', records=[], total=0, page=1, per_page=20, stats={})
     
     # Pagination parameters.
     page = request.args.get('page', 1, type=int)
@@ -112,6 +112,9 @@ def dashboard(): # (Anthropic, 2025)
     # Calculate pagination.
     total_pages = (total + per_page - 1) // per_page
     
+    # Calculate statistics for visualizations.
+    stats = calculate_dashboard_stats(collection)
+    
     # Log dashboard access.
     log_audit(
         user_id=current_user.id,
@@ -132,8 +135,93 @@ def dashboard(): # (Anthropic, 2025)
                          total_pages=total_pages,
                          search_form=search_form,
                          search_field=search_field,
-                         search_value=search_value)
+                         search_value=search_value,
+                         stats=stats)
 
+# Calculate aggregated statistics for dashboard visualizations.
+def calculate_dashboard_stats(collection): # (Anthropic, 2025)
+    try:
+        # Get all records for analysis.
+        all_records = list(collection.find({}))
+        decrypted_records = decrypt_patient_records_batch(all_records)
+        
+        total_records = len(decrypted_records)
+        
+        if total_records == 0:
+            return {}
+        
+        # Initialize counters.
+        stroke_count = 0
+        hypertension_count = 0
+        heart_disease_count = 0
+        gender_counts = {'Male': 0, 'Female': 0, 'Other': 0}
+        smoking_counts = {'never smoked': 0, 'formerly smoked': 0, 'smokes': 0, 'Unknown': 0}
+        age_groups = {'0-20': 0, '21-40': 0, '41-60': 0, '61-80': 0, '81+': 0}
+        work_type_counts = {}
+        
+        for record in decrypted_records:
+            # Stroke count.
+            if record.get('stroke') == 1:
+                stroke_count += 1
+            
+            # Hypertension count.
+            if record.get('hypertension') == 1:
+                hypertension_count += 1
+            
+            # Heart disease count.
+            if record.get('heart_disease') == 1:
+                heart_disease_count += 1
+            
+            # Gender distribution.
+            gender = record.get('gender', 'Other')
+            if gender in gender_counts:
+                gender_counts[gender] += 1
+            
+            # Smoking status distribution.
+            smoking = record.get('smoking_status', 'Unknown')
+            if smoking in smoking_counts:
+                smoking_counts[smoking] += 1
+            
+            # Age groups.
+            age = record.get('age', 0)
+            if age <= 20:
+                age_groups['0-20'] += 1
+            elif age <= 40:
+                age_groups['21-40'] += 1
+            elif age <= 60:
+                age_groups['41-60'] += 1
+            elif age <= 80:
+                age_groups['61-80'] += 1
+            else:
+                age_groups['81+'] += 1
+            
+            # Work type distribution.
+            work_type = record.get('work_type', 'Unknown')
+            work_type_counts[work_type] = work_type_counts.get(work_type, 0) + 1
+        
+        # Calculate percentages.
+        stroke_percentage = (stroke_count / total_records) * 100
+        hypertension_percentage = (hypertension_count / total_records) * 100
+        heart_disease_percentage = (heart_disease_count / total_records) * 100
+        
+        return {
+            'total_records': total_records,
+            'stroke_count': stroke_count,
+            'stroke_percentage': round(stroke_percentage, 1),
+            'no_stroke_count': total_records - stroke_count,
+            'no_stroke_percentage': round(100 - stroke_percentage, 1),
+            'hypertension_count': hypertension_count,
+            'hypertension_percentage': round(hypertension_percentage, 1),
+            'heart_disease_count': heart_disease_count,
+            'heart_disease_percentage': round(heart_disease_percentage, 1),
+            'gender_counts': gender_counts,
+            'smoking_counts': smoking_counts,
+            'age_groups': age_groups,
+            'work_type_counts': work_type_counts
+        }
+    except Exception as e:
+        current_app.logger.error(f"Error calculating dashboard stats: {e}")
+        return {}
 
 @crud_bp.route('/user-dashboard')
 @login_required

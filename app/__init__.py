@@ -94,10 +94,11 @@ def create_app(config_name=None): # (Anthropic, 2025)
     app.register_blueprint(auth_bp)
     app.register_blueprint(crud_bp)
     
-    # Create database tables, import admin models to ensure they're registered with SQLAlchemy.
-    with app.app_context():
-        from app.admin_models import AdminUser, AdminAuditLog
-        db.create_all()
+    # Only create tables if not in testing mode.
+    if not app.config.get('TESTING', False):
+        with app.app_context():
+            from app.admin_models import AdminUser, AdminAuditLog
+            db.create_all()
     
     # Error handlers.
     @app.errorhandler(404)

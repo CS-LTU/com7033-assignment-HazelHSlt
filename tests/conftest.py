@@ -34,11 +34,14 @@ from app.models import User
 def app(): # (Anthropic, 2025)
     app = create_app('testing')
     
-    # Additional test configuration.
+    # Additional test configuration with separate in-memory DBs for each bind.
     app.config.update({
         'TESTING': True,
         'WTF_CSRF_ENABLED': False,
         'SQLALCHEMY_DATABASE_URI': 'sqlite:///:memory:',
+        'SQLALCHEMY_BINDS': {
+            'admin': 'sqlite:///:memory:'  # Separate in-memory DB for admin.
+        },
         'MONGODB_URI': os.environ.get('MONGODB_URI', 'mongodb://localhost:27017/healthcare_test'),
     })
     return app
@@ -47,6 +50,11 @@ def app(): # (Anthropic, 2025)
 @pytest.fixture(scope='session')
 def _db(app): # (Anthropic, 2025)
     with app.app_context():
+        # Import models to ensure they're registered
+        from app.admin_models import AdminUser, AdminAuditLog
+        from app.models import User, AuditLog
+        
+        # Create all tables for both binds
         db.create_all()
         yield db
         db.drop_all()
