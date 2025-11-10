@@ -8,6 +8,8 @@ from flask import current_app
 import re
 import hmac
 import hashlib
+import random
+from datetime import datetime, timedelta
 
 # Raised when encryption or decryption operations fail.
 class EncryptionError(Exception): # (Anthropic, 2025)
@@ -318,3 +320,206 @@ def log_audit(user_id, action, table_name, record_id=None, ip_address=None, user
         current_app.logger.error(f"Audit logging error: {e}")
         db.session.rollback()
 
+# Generate a 6-digit 2FA code.
+def generate_2fa_code(): # (Anthropic, 2025)
+    return ''.join([str(random.randint(0, 9)) for _ in range(6)])
+
+# Send 2FA code via email using Flask-Mail.
+def send_2fa_code(email, code): # (Anthropic, 2025)
+    from app import mail
+    from flask_mail import Message
+    
+    # Check if email is configured.
+    if not current_app.config.get('MAIL_USERNAME') or not current_app.config.get('MAIL_PASSWORD'):
+        current_app.logger.warning("Email not configured, using console output only")
+        print(f"\n{'='*70}")
+        print(f"2FA Code for {email}: {code}")
+        print(f"{'='*70}\n")
+        
+        # Write to file.
+        try:
+            import os
+            admin_login_file = 'Admin_Login.txt'
+            existing_content = []
+            if os.path.exists(admin_login_file):
+                with open(admin_login_file, 'r') as f:
+                    existing_content = f.readlines()
+            
+            with open(admin_login_file, 'w') as f:
+                for line in existing_content:
+                    if not line.startswith('2FA Code:'):
+                        f.write(line)
+                
+                if existing_content and not existing_content[-1].startswith('='):
+                    f.write(f"2FA Code: {code} (expires in 10 minutes)\n")
+                    f.write("="*70 + "\n")
+                elif not existing_content:
+                    f.write("="*70 + "\n")
+                    f.write(f"2FA Code: {code} (expires in 10 minutes)\n")
+                    f.write("="*70 + "\n")
+                else:
+                    f.write(f"2FA Code: {code} (expires in 10 minutes)\n")
+                    f.write(existing_content[-1])
+            
+            current_app.logger.info(f"2FA code written to {admin_login_file}")
+        except Exception as file_error:
+            current_app.logger.warning(f"Could not write 2FA code to file: {file_error}")
+        
+        # Return True to continue the flow (development mode).
+        return True
+    
+    try:
+        # Create the email message.
+        msg = Message(
+            subject='Your 2FA Verification Code',
+            recipients=[email],
+            body=f'''Hello,
+
+Your verification code is: {code}
+
+This code will expire in 10 minutes.
+
+If you did not request this code, please ignore this email.
+
+Best regards,
+COM7033 Records Administrator.
+'''
+        )
+        
+        # HTML version (optional).
+        msg.html = f'''
+        <html>
+            <body style="font-family: Arial, sans-serif;">
+                <h2 style="color: #2c3e50;">Two-Factor Authentication</h2>
+                <p>Hello,</p>
+                <p>Your verification code is:</p>
+                <div style="background-color: #f8f9fa; padding: 20px; text-align: center; font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #2c3e50; margin: 20px 0;">
+                    {code}
+                </div>
+                <p><strong>This code will expire in 10 minutes.</strong></p>
+                <p style="color: #7f8c8d; font-size: 12px;">If you did not request this code, please ignore this email.</p>
+                <hr style="border: none; border-top: 1px solid #ecf0f1; margin: 20px 0;">
+                <p style="color: #95a5a6; font-size: 11px;">COM7033 Healthcare Records Manager</p>
+            </body>
+        </html>
+        '''
+        
+        # Send email.
+        mail.send(msg)
+        
+        current_app.logger.info(f"2FA code sent successfully to {email}")
+        print(f"\n{'='*70}")
+        print(f"2FA Code sent to {email}: {code}")
+        print(f"{'='*70}\n")
+        
+        # Write 2FA code to Admin_Login.txt for development purposes.
+        try:
+            import os
+            admin_login_file = 'Admin_Login.txt'
+            
+            # Read existing content if file exists.
+            existing_content = []
+            if os.path.exists(admin_login_file):
+                with open(admin_login_file, 'r') as f:
+                    existing_content = f.readlines()
+            
+            # Write updated content with 2FA code.
+            with open(admin_login_file, 'w') as f:
+                # Write existing lines.
+                for line in existing_content:
+                    # Skip old 2FA code line if exists.
+                    if not line.startswith('2FA Code:'):
+                        f.write(line)
+                
+                # Add 2FA code before the final separator.
+                if existing_content and not existing_content[-1].startswith('='):
+                    f.write(f"2FA Code: {code} (expires in 10 minutes)\n")
+                    f.write("="*70 + "\n")
+                elif not existing_content:
+                    # File was empty or didn't exist.
+                    f.write("="*70 + "\n")
+                    f.write(f"2FA Code: {code} (expires in 10 minutes)\n")
+                    f.write("="*70 + "\n")
+                else:
+                    # Insert before final separator.
+                    f.write(f"2FA Code: {code} (expires in 10 minutes)\n")
+                    f.write(existing_content[-1])
+            
+            current_app.logger.info(f"2FA code written to {admin_login_file}")
+        except Exception as file_error:
+            current_app.logger.warning(f"Could not write 2FA code to file: {file_error}")
+        
+        return True
+        
+    except Exception as e:
+        current_app.logger.error(f"Failed to send 2FA code: {e}")
+        print(f"\n{'='*70}")
+        print(f"ERROR: Failed to send email - {e}")
+        print(f"2FA Code for {email}: {code}")
+        print(f"{'='*70}\n")
+        
+        # Still write to file on error.
+        try:
+            import os
+            admin_login_file = 'Admin_Login.txt'
+            existing_content = []
+            if os.path.exists(admin_login_file):
+                with open(admin_login_file, 'r') as f:
+                    existing_content = f.readlines()
+            
+            with open(admin_login_file, 'w') as f:
+                for line in existing_content:
+                    if not line.startswith('2FA Code:'):
+                        f.write(line)
+                
+                if existing_content and not existing_content[-1].startswith('='):
+                    f.write(f"2FA Code: {code} (expires in 10 minutes)\n")
+                    f.write("="*70 + "\n")
+                elif not existing_content:
+                    f.write("="*70 + "\n")
+                    f.write(f"2FA Code: {code} (expires in 10 minutes)\n")
+                    f.write("="*70 + "\n")
+                else:
+                    f.write(f"2FA Code: {code} (expires in 10 minutes)\n")
+                    f.write(existing_content[-1])
+        except Exception as file_error:
+            pass
+        
+        return False
+
+# Store 2FA code in session with expiration.
+def store_2fa_code(session, code, user_id): # (Anthropic, 2025)
+    session['2fa_code'] = code
+    session['2fa_user_id'] = user_id
+    session['2fa_expiry'] = (datetime.utcnow() + timedelta(minutes=10)).isoformat()
+
+# Verify 2FA code from session.
+def verify_2fa_code(session, entered_code, user_id): # (Anthropic, 2025)
+    stored_code = session.get('2fa_code')
+    stored_user_id = session.get('2fa_user_id')
+    expiry_str = session.get('2fa_expiry')
+    
+    if not stored_code or not stored_user_id or not expiry_str:
+        return False, "No 2FA code found. Please request a new code."
+    
+    if stored_user_id != user_id:
+        return False, "Invalid session. Please log in again."
+    
+    # Check expiration.
+    expiry = datetime.fromisoformat(expiry_str)
+    if datetime.utcnow() > expiry:
+        # Clear expired code.
+        session.pop('2fa_code', None)
+        session.pop('2fa_user_id', None)
+        session.pop('2fa_expiry', None)
+        return False, "Code expired. Please request a new code."
+    
+    # Verify code.
+    if stored_code == entered_code:
+        # Clear code after successful verification.
+        session.pop('2fa_code', None)
+        session.pop('2fa_user_id', None)
+        session.pop('2fa_expiry', None)
+        return True, "Code verified successfully."
+    
+    return False, "Invalid code. Please try again."

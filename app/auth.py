@@ -2,13 +2,13 @@
 # Github copilot was used for portions of the planning, research, feedback and editing of the software artefact. Mostly utilised for syntax, logic and error checking with ChatGPT and Claude Sonnet 4.5 used as the models.
 
 # This is the Authentication handler for user registration, login, and logout. With support for both authentication of "admin" and "users".
-from flask import Blueprint, render_template, redirect, url_for, flash, request
+from flask import Blueprint, render_template, redirect, url_for, flash, request, session
 from flask_login import login_user, logout_user, current_user
 from app import db, bcrypt, limiter, mongo_db
 from app.models import User
 from app.admin_models import AdminUser
 from app.forms import RegistrationForm, LoginForm
-from app.security import log_audit, sanitize_input, generate_search_hash
+from app.security import log_audit, sanitize_input, generate_search_hash, generate_2fa_code, send_2fa_code, store_2fa_code, verify_2fa_code
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -118,7 +118,22 @@ def login(): # (Anthropic, 2025)
                     flash('Your account has been deactivated. Please contact support.', 'danger')
                     return render_template('auth/login.html', form=form)
                 
-                # Successful administration login, uses prefixed ID.
+                # Check if admin has a email and enable "Two Factor Authentication" (2FA) if email is present.
+                if admin.email:
+                    # Generate and send 2FA code.
+                    code = generate_2fa_code()
+                    if send_2fa_code(admin.email, code):
+                        # Store code in session.
+                        store_2fa_code(session, code, admin.id)
+                        session['pending_admin_id'] = admin.id
+                        session['remember_me'] = remember
+                        flash('A verification code has been sent to your email.', 'info')
+                        return redirect(url_for('auth.admin_2fa'))
+                    else:
+                        flash('Failed to send verification code. Please try again.', 'danger')
+                        return render_template('auth/login.html', form=form)
+                
+                # No email, proceed with normal login.
                 admin.is_admin = True
                 original_id = admin.id
                 admin.id = f"admin_{admin.id}"
@@ -126,7 +141,7 @@ def login(): # (Anthropic, 2025)
                 admin.id = original_id  # Reset for database operations.
                 admin.reset_failed_login()
                 
-                flash(f'Welcome back, Administrator {admin.username}!', 'success')
+                flash(f'Welcome back {admin.username}.', 'success')
                 
                 next_page = request.args.get('next')
                 return redirect(next_page) if next_page else redirect(url_for('crud.dashboard'))
@@ -167,7 +182,7 @@ def login(): # (Anthropic, 2025)
                         user_agent=request.headers.get('User-Agent')
                     )
                     
-                    flash(f'Welcome back, {user.username}!', 'success')
+                    flash(f'Welcome back, {user.username}.', 'success')
                     
                     next_page = request.args.get('next')
                     return redirect(next_page) if next_page else redirect(url_for('crud.user_dashboard'))
@@ -191,6 +206,54 @@ def login(): # (Anthropic, 2025)
                 flash('Invalid username or password.', 'danger')
     
     return render_template('auth/login.html', form=form)
+
+@auth_bp.route('/admin-2fa', methods=['GET', 'POST'])
+@limiter.limit("10 per 5 minutes")
+
+# Admin 2FA verification page.
+def admin_2fa(): # (Anthropic, 2025)
+    from app.forms import TwoFactorForm
+    
+    # Check if there's a pending admin login.
+    pending_admin_id = session.get('pending_admin_id')
+    if not pending_admin_id:
+        flash('No pending authentication. Please log in.', 'warning')
+        return redirect(url_for('auth.login'))
+    
+    form = TwoFactorForm()
+    
+    if form.validate_on_submit():
+        entered_code = form.code.data
+        
+        # Verify the code.
+        is_valid, message = verify_2fa_code(session, entered_code, pending_admin_id)
+        
+        if is_valid:
+            # Complete admin login.
+            admin = AdminUser.query.get(pending_admin_id)
+            if admin and admin.is_active:
+                admin.is_admin = True
+                original_id = admin.id
+                admin.id = f"admin_{admin.id}"
+                remember = session.get('remember_me', False)
+                login_user(admin, remember=remember)
+                admin.id = original_id
+                admin.reset_failed_login()
+                
+                # Clear session data.
+                session.pop('pending_admin_id', None)
+                session.pop('remember_me', None)
+                
+                flash(f'Welcome back {admin.username}.', 'success')
+                next_page = request.args.get('next')
+                return redirect(next_page) if next_page else redirect(url_for('crud.dashboard'))
+            else:
+                flash('Admin account not found or inactive.', 'danger')
+                return redirect(url_for('auth.login'))
+        else:
+            flash(message, 'danger')
+    
+    return render_template('auth/admin_2fa.html', form=form)
 
 @auth_bp.route('/logout')
 
@@ -496,6 +559,68 @@ def delete_account(): # (Anthropic, 2025)
             
             flash('Your account and all associated data have been permanently deleted. Thank you for using our service.', 'success')
             return redirect(url_for('index'))
+    
+    # Form validation failed.
+    for field, errors in form.errors.items():
+        for error in errors:
+            flash(error, 'danger')
+    
+    return redirect(url_for('auth.userpage'))
+
+@auth_bp.route('/admin/change-email', methods=['POST'])
+@limiter.limit("5 per hour")
+
+# Change admin email endpoint.
+def admin_change_email(): # (Anthropic, 2025)
+    from flask_login import login_required
+    from app.forms import AdminEmailForm
+    
+    if not current_user.is_authenticated:
+        flash('Please log in to change your email.', 'info')
+        return redirect(url_for('auth.login'))
+    
+    # Check if user is admin.
+    is_admin = hasattr(current_user, 'is_admin') and current_user.is_admin
+    
+    if not is_admin:
+        flash('Only admin users can access this feature.', 'danger')
+        return redirect(url_for('auth.userpage'))
+    
+    form = AdminEmailForm()
+    
+    # Remove current_user from session to prevent id field conflict during commit.
+    if current_user in db.session:
+        db.session.expunge(current_user)
+    
+    with db.session.no_autoflush:
+        if form.validate_on_submit():
+            # Get actual admin ID.
+            user_id_str = str(current_user.id)
+            if user_id_str.startswith('admin_'):
+                admin_id = int(user_id_str.split('_')[1])
+            else:
+                try:
+                    admin_id = int(user_id_str)
+                except (ValueError, TypeError):
+                    flash('Invalid user session.', 'danger')
+                    return redirect(url_for('auth.login'))
+            
+            admin = AdminUser.query.get(admin_id)
+            
+            if not admin or not bcrypt.check_password_hash(admin.password_hash, form.current_password.data):
+                flash('Current password is incorrect.', 'danger')
+                return redirect(url_for('auth.userpage'))
+            
+            # Store old email for logging.
+            old_email = admin.email or "None"
+            
+            # Update email.
+            admin.email = form.new_email.data
+            
+            db.session.commit()
+            
+            flash(f'Your email has been {"updated" if old_email != "None" else "added"} successfully! 2FA will be enabled on your next login.', 'success')
+            return redirect(url_for('auth.userpage'))
     
     # Form validation failed.
     for field, errors in form.errors.items():

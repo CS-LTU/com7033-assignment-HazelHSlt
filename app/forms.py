@@ -253,3 +253,47 @@ class DeleteAccountForm(FlaskForm): # (Anthropic, 2025)
         if confirm_text.data.upper() != 'DELETE':
             raise ValidationError('You must type "DELETE" to confirm account deletion.')
 
+# Form for admin users to add or change email.
+class AdminEmailForm(FlaskForm): # (Anthropic, 2025)
+    new_email = StringField('Email Address',
+                           validators=[
+                               DataRequired(message="Email is required."),
+                               Email(message="Invalid email address.")
+                           ])
+    
+    current_password = PasswordField('Current Password',
+                                    validators=[
+                                        DataRequired(message="Current password is required to change email.")
+                                    ])
+    
+    # Check if new email is already in use.
+    def validate_new_email(self, new_email): # (Anthropic, 2025)
+        from app.admin_models import AdminUser
+        # Sanitize the input.
+        clean_email = bleach.clean(new_email.data, tags=[], strip=True).lower()
+        
+        # Check if the email exists in the AdminUser table.
+        admin = AdminUser.query.filter_by(email=clean_email).first()
+        if admin:
+            raise ValidationError('This email is already registered. Please use a different one.')
+        
+        # Also check User table to avoid conflicts.
+        user = User.query.filter_by(email=clean_email).first()
+        if user:
+            raise ValidationError('This email is already in use. Please use a different one.')
+        
+        new_email.data = clean_email
+
+# Form for 2FA code verification.
+class TwoFactorForm(FlaskForm): # (Anthropic, 2025)
+    code = StringField('Verification Code',
+                      validators=[
+                          DataRequired(message="Verification code is required."),
+                          Length(min=6, max=6, message="Code must be 6 digits.")
+                      ])
+    
+    def validate_code(self, code): # (Anthropic, 2025)
+        # Ensure only digits.
+        if not code.data.isdigit():
+            raise ValidationError("Code must contain only digits.")
+

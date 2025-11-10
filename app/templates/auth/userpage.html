@@ -22,6 +22,15 @@ This HTML page is for the userpage form, using Jinja2 and py Flask templating, w
                 <p><strong>Username:</strong> {{ current_user.username }}</p>
                 {% if current_user.is_admin is defined and current_user.is_admin %}
                     <p><strong>Role:</strong> <span class="badge bg-danger">Administrator</span></p>
+                    <p><strong>Email:</strong> 
+                        {% if current_user.email %}
+                            {{ current_user.email }}
+                            <span class="badge bg-success"><i class="fas fa-shield-alt"></i> 2FA Enabled</span>
+                        {% else %}
+                            <span class="text-muted">Not set</span>
+                            <span class="badge bg-warning text-dark"><i class="fas fa-exclamation-triangle"></i> 2FA Disabled</span>
+                        {% endif %}
+                    </p>
                 {% else %}
                     <p><strong>Patient ID:</strong> 
                         {% if current_user.patient_id %}
@@ -86,7 +95,7 @@ This HTML page is for the userpage form, using Jinja2 and py Flask templating, w
                 </form>
             </div>
         </div>
-        <!-- Change Email Card, only shown for users, updates email/username, (Anthropic, 2025). -->
+        <!-- Change Email Card, only shown for users, (Anthropic, 2025). -->
         {% if not (current_user.is_admin is defined and current_user.is_admin) %}
         <div class="card mb-4">
             <div class="card-header bg-info text-white">
@@ -122,6 +131,45 @@ This HTML page is for the userpage form, using Jinja2 and py Flask templating, w
                     </div>
                     <button type="submit" class="btn btn-info">
                         <i class="fas fa-check"></i> Change Email
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% else %}
+        <!-- Admin Email Management -->
+        <div class="card mb-4">
+            <div class="card-header bg-info text-white">
+                <i class="fas fa-envelope"></i> Email & Two-Factor Authentication
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-3">
+                    <i class="fas fa-info-circle"></i> Add an email address to enable two-factor authentication for enhanced security.
+                </p>
+                {% if current_user.email %}
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle"></i> 2FA is currently <strong>enabled</strong> for your account.
+                    </div>
+                {% else %}
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i> 2FA is currently <strong>disabled</strong>. Add an email to enable it.
+                    </div>
+                {% endif %}
+                <form method="POST" action="{{ url_for('auth.admin_change_email') }}">
+                    {% set admin_email_form = change_email_form.__class__() if current_user.email else change_email_form.__class__() %}
+                    {{ admin_email_form.hidden_tag() }}
+                    <div class="mb-3">
+                        <label for="new_email" class="form-label">
+                            {% if current_user.email %}Update Email Address{% else %}Add Email Address{% endif %}
+                        </label>
+                        <input type="email" class="form-control" id="new_email" name="new_email" 
+                               placeholder="admin@example.com" value="{{ current_user.email or '' }}">
+                    </div>
+                    <div class="mb-3">
+                        <label for="current_password" class="form-label">Current Password</label>
+                        <input type="password" class="form-control" id="current_password" name="current_password">
+                    </div>
+                    <button type="submit" class="btn btn-info">
+                        <i class="fas fa-check"></i> {% if current_user.email %}Update Email{% else %}Add Email{% endif %}
                     </button>
                 </form>
             </div>

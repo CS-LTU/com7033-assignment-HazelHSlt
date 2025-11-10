@@ -10,6 +10,7 @@ from flask_wtf.csrf import CSRFProtect
 from flask_talisman import Talisman
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from flask_mail import Mail
 from pymongo import MongoClient
 from config import config
 import os
@@ -19,6 +20,7 @@ db = SQLAlchemy()
 bcrypt = Bcrypt()
 login_manager = LoginManager()
 csrf = CSRFProtect()
+mail = Mail()
 limiter = Limiter(
     key_func=get_remote_address,
     default_limits=["5000 per day", "1000 per hour"],  # Increased global limits, set this to 500, 100 for default restrictions, was increased for manual testing.
@@ -47,6 +49,7 @@ def create_app(config_name=None): # (Anthropic, 2025)
     bcrypt.init_app(app)
     login_manager.init_app(app)
     csrf.init_app(app)
+    mail.init_app(app)
     limiter.init_app(app)
     
     # Configure Flask-Login.
@@ -98,26 +101,26 @@ def create_app(config_name=None): # (Anthropic, 2025)
     
     # Error handlers.
     @app.errorhandler(404)
-    def not_found_error(error):
+    def not_found_error(error): # (Anthropic, 2025)
         return render_template('errors/404.html'), 404
     
     @app.errorhandler(500)
-    def internal_error(error):
+    def internal_error(error): # (Anthropic, 2025)
         db.session.rollback()
         return render_template('errors/500.html'), 500
     
     @app.errorhandler(429)
-    def ratelimit_handler(e):
+    def ratelimit_handler(e): # (Anthropic, 2025)
         return render_template('errors/429.html', error=e.description), 429
     
     # Context processor for the MongoDB status, makes a MongoDB connection status available to all HTML templates.
     @app.context_processor
-    def inject_mongodb_status():
+    def inject_mongodb_status(): # (Anthropic, 2025)
         return {'mongodb_connected': mongo_db is not None}
     
     # Index route.
     @app.route('/')
-    def index():
+    def index(): # (Anthropic, 2025)
         return render_template('index.html')
     
     return app

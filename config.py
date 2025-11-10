@@ -67,6 +67,15 @@ class Config: # (Anthropic, 2025)
     # In production, store this securely in environment variable.
     PATIENT_ID_HMAC_KEY = os.environ.get('PATIENT_ID_HMAC_KEY', 'default-dev-key-change-in-production')
 
+    # Email Configuration for Flask-Mail
+    MAIL_SERVER = os.environ.get('MAIL_SERVER') or 'smtp.gmail.com'
+    MAIL_PORT = int(os.environ.get('MAIL_PORT') or 587)
+    MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS', 'True').lower() in ['true', '1', 't']
+    MAIL_USE_SSL = os.environ.get('MAIL_USE_SSL', 'False').lower() in ['true', '1', 't']
+    MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
+    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
+    MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER') or os.environ.get('MAIL_USERNAME')
+
 # Development environment configuration.
 class DevelopmentConfig(Config): # (Anthropic, 2025)
     DEBUG = True

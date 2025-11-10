@@ -137,6 +137,7 @@ def create_admin_user(app): # (Anthropic, 2025)
                 # Create admin user.
                 admin = AdminUser()
                 admin.username = 'admin'
+                admin.email = None  # No email by default, if admin adds one manually it will automatiicaly enable "Two Factor Authentication" (2FA).
                 admin.password_hash = bcrypt.generate_password_hash(admin_password).decode('utf-8')
                 admin.role = 'admin'
                 admin.is_active = True  # type: ignore[assignment]
@@ -149,6 +150,7 @@ def create_admin_user(app): # (Anthropic, 2025)
                 print("="*70)
                 print(f"Username: admin")
                 print(f"Password: {admin_password}")
+                print(f"Email: Not set (add via Account Settings to enable 2FA)")
                 print("="*70)
                 print("="*70 + "\n")
                 
@@ -158,6 +160,7 @@ def create_admin_user(app): # (Anthropic, 2025)
                     f.write("="*70 + "\n")
                     f.write(f"Username: admin\n")
                     f.write(f"Password: {admin_password}\n")
+                    f.write(f"Email: Not set (add via Account Settings to enable 2FA)\n")
                     f.write("="*70 + "\n")
                 
                 print("Admin login details saved to: Admin_Login.txt")
