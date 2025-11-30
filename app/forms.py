@@ -41,7 +41,6 @@ class RegistrationForm(FlaskForm): # (Anthropic, 2025)
                                         EqualTo('password', message="Passwords must match.")
                                     ])
     
-    # Check if the email already exists and sanitize it.
     def validate_email(self, email): # (Anthropic, 2025)
         # Sanitize the input.
         clean_email = bleach.clean(email.data, tags=[], strip=True).lower()
@@ -54,19 +53,44 @@ class RegistrationForm(FlaskForm): # (Anthropic, 2025)
         if user_by_username:
             raise ValidationError('Email already registered. Please use a different one.')
         email.data = clean_email
-    
-    # Check if the patient_id is already registered.
+        
+        """ Check if the email already exists and sanitize it.
+
+        Args:
+            email: WTForms field.
+
+        Raises:
+            ValidationError: If email is already registered.
+        """
+
     def validate_patient_id(self, patient_id): # (Anthropic, 2025) 
         if patient_id.data:
             from app.models import User
             if User.patient_id_exists(patient_id.data):
                 raise ValidationError('This Patient ID is already registered.')
-    
-    # Validate password strength.
+            
+        """ Validate that the patient_id is not already registered.
+
+        Args:
+            patient_id: WTForms field.
+
+        Raises:
+            ValidationError: If patient_id is already registered.
+        """
+
     def validate_password(self, password): # (Anthropic, 2025)
         is_valid, error_message = validate_password_strength(password.data)
         if not is_valid:
             raise ValidationError(error_message or "Password does not meet security requirements.")
+        
+        """ Validate password strength.
+
+        Args:
+            password: WTForms field.
+
+        Raises:
+            ValidationError: If password does not meet requirements.
+        """
 
 # The user login form.
 class LoginForm(FlaskForm): # (Anthropic, 2025)  
@@ -85,6 +109,12 @@ class LoginForm(FlaskForm): # (Anthropic, 2025)
     
     def validate_username(self, username): # (Anthropic, 2025)
         username.data = bleach.clean(username.data, tags=[], strip=True)
+        
+        """ Sanitize the username input.
+
+        Args:
+            username: WTForms field.
+        """
 
 # Form for creating and updating the patient records.
 class PatientRecordForm(FlaskForm): # (Anthropic, 2025)   
@@ -162,12 +192,30 @@ class PatientRecordForm(FlaskForm): # (Anthropic, 2025)
                     raise ValidationError("BMI must be between 10 and 100.")
             except ValueError:
                 raise ValidationError("BMI must be a valid number or 'N/A'.")
-    
+            
+        """ Validate the BMI field to allow 'N/A' or a valid float.
+
+        Args:
+            bmi: WTForms field.
+
+        Raises:
+            ValidationError: If BMI is not valid.
+        """
+
     def validate_patient_id(self, patient_id): # (Anthropic, 2025)
         if patient_id.data is not None:
             # Ensure it's a positive integer
             if patient_id.data < 1:
                 raise ValidationError("Patient ID must be a positive number.")
+            
+        """ Validate that patient_id is a positive integer.
+
+        Args:
+            patient_id: WTForms field.
+
+        Raises:
+            ValidationError: If patient_id is not positive.
+        """
 
 # Form for searching patient records, includes both unencrypted and encrypted with searches using HMAC fields.
 class SearchForm(FlaskForm): # (Anthropic, 2025)
@@ -213,6 +261,15 @@ class ChangePasswordForm(FlaskForm): # (Anthropic, 2025)
         is_valid, error_message = validate_password_strength(new_password.data)
         if not is_valid:
             raise ValidationError(error_message or "Password does not meet security requirements.")
+        
+        """ Validate new password strength.
+
+        Args:
+            new_password: WTForms field.
+
+        Raises:
+            ValidationError: If password does not meet requirements.
+        """
 
 # Form for changing user email/username.
 class ChangeEmailForm(FlaskForm): # (Anthropic, 2025)    
@@ -242,8 +299,16 @@ class ChangeEmailForm(FlaskForm): # (Anthropic, 2025)
         if user_by_username:
             raise ValidationError('This email is already registered. Please use a different one.')
         new_email.data = clean_email
+        
+        """ Validate that new email is unique and sanitized.
 
-# Form for deleting user account with confirmation.
+        Args:
+            new_email: WTForms field.
+
+        Raises:
+            ValidationError: If email is already registered.
+        """
+
 class DeleteAccountForm(FlaskForm): # (Anthropic, 2025)
     confirm_password = PasswordField('Enter your password to confirm deletion',
                                     validators=[
@@ -259,6 +324,15 @@ class DeleteAccountForm(FlaskForm): # (Anthropic, 2025)
     def validate_confirm_text(self, confirm_text): # (Anthropic, 2025)
         if confirm_text.data.upper() != 'DELETE':
             raise ValidationError('You must type "DELETE" to confirm account deletion.')
+        
+        """ Form for deleting user account with confirmation.
+
+        Args:
+            confirm_text: WTForms field.
+
+        Raises:
+            ValidationError: If confirmation text is not 'DELETE'.
+        """
 
 # Form for admin users to add or change email.
 class AdminEmailForm(FlaskForm): # (Anthropic, 2025)
@@ -290,6 +364,15 @@ class AdminEmailForm(FlaskForm): # (Anthropic, 2025)
             raise ValidationError('This email is already in use. Please use a different one.')
         
         new_email.data = clean_email
+        
+        """ Validate that new admin email is unique and sanitized.
+
+        Args:
+            new_email: WTForms field.
+
+        Raises:
+            ValidationError: If email is already registered.
+        """
 
 # Form for 2FA code verification.
 class TwoFactorForm(FlaskForm): # (Anthropic, 2025)
@@ -303,4 +386,13 @@ class TwoFactorForm(FlaskForm): # (Anthropic, 2025)
         # Ensure only digits.
         if not code.data.isdigit():
             raise ValidationError("Code must contain only digits.")
+        
+        """ Validate that the 2FA code contains only digits.
+
+        Args:
+            code: WTForms field.
+
+        Raises:
+            ValidationError: If code contains non-digit characters.
+        """
 

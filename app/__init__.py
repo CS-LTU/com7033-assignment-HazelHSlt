@@ -131,3 +131,12 @@ def create_app(config_name=None): # (Anthropic, 2025)
     
     return app
 
+    """ Flask application factory.
+
+    Args:
+        config_name: Name of the configuration to use.
+
+    Returns:
+        Configured Flask app instance.
+    """
+

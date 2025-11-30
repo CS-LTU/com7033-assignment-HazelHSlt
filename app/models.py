@@ -25,11 +25,19 @@ elif isinstance(ENCRYPTION_KEY, str):
     ENCRYPTION_KEY = ENCRYPTION_KEY.encode()
 cipher_suite = Fernet(ENCRYPTION_KEY)
 
-def hash_patient_id(patient_id):
-    """Create deterministic hash of patient_id using HMAC for duplicate checking"""
+def hash_patient_id(patient_id): # (Anthropic, 2025)
     if patient_id is None:
         return None
     return hmac.new(PATIENT_ID_HMAC_KEY, str(patient_id).encode(), hashlib.sha256).hexdigest()
+
+    """ Create deterministic hash of patient_id using HMAC for duplicate checking.
+
+    Args:
+        patient_id: Patient ID value.
+
+    Returns:
+        Hex digest string of the HMAC hash, or None if patient_id is None.
+    """
 
 # User model for authentication, stores the user credentials and account information, users are linked to patient records via their patient_id's.
 class User(UserMixin, db.Model): # (Anthropic, 2025)
@@ -52,7 +60,6 @@ class User(UserMixin, db.Model): # (Anthropic, 2025)
     # Relationships.
     audit_logs = db.relationship('AuditLog', backref='user', lazy='dynamic', cascade='all, delete-orphan')
     
-    # Decrypt and return the patient_id.
     @property
     def patient_id(self): # (Anthropic, 2025)
         if self._patient_id_encrypted:
@@ -63,7 +70,12 @@ class User(UserMixin, db.Model): # (Anthropic, 2025)
                 return None
         return None
     
-    # Hash and encrypt the patient_id for storage.
+        """ Decrypt and return the patient_id.
+
+        Returns:
+            Decrypted patient_id as int, or None if not available.
+        """
+
     def set_patient_id(self, patient_id): # (Anthropic, 2025)
         if patient_id is not None:
             # Store hash for duplicate checking.
@@ -74,22 +86,44 @@ class User(UserMixin, db.Model): # (Anthropic, 2025)
         else:
             self.patient_id_hash = None
             self._patient_id_encrypted = None
-    
-    # Query user by patient_id (using hash comparison).
+            
+        """ Hash and encrypt the patient_id for storage.
+
+        Args:
+            patient_id: Patient ID value to store.
+        """
+
     @staticmethod
     def query_by_patient_id(patient_id): # (Anthropic, 2025)
         patient_hash = hash_patient_id(patient_id)
         return User.query.filter_by(patient_id_hash=patient_hash).first()
     
-    # Check if a patient_id is already registered.
+        """ Query user by patient_id (using hash comparison).
+
+        Args:
+            patient_id: Patient ID value.
+
+        Returns:
+            User instance or None.
+        """
+
     @staticmethod
     def patient_id_exists(patient_id): # (Anthropic, 2025)
         patient_hash = hash_patient_id(patient_id)
         return User.query.filter_by(patient_id_hash=patient_hash).first() is not None
     
+        """ Check if a patient_id is already registered.
+
+        Args:
+            patient_id: Patient ID value.
+
+        Returns:
+            True if exists, False otherwise.
+        """
+
     def __repr__(self): # (Anthropic, 2025)
         return f'<User {self.username}>'
-    
+
     # Check if the account is currently locked.
     def is_account_locked(self): # (Anthropic, 2025)
         if self.account_locked_until:
@@ -101,8 +135,13 @@ class User(UserMixin, db.Model): # (Anthropic, 2025)
                 self.failed_login_attempts = 0
                 db.session.commit()
         return False
+    
+        """ Check if the account is currently locked.
 
-    # Increment failed login attempts and lock if threshold exceeded.
+        Returns:
+            True if locked, False otherwise.
+        """
+
     def increment_failed_login(self): # (Anthropic, 2025)
         self.failed_login_attempts += 1
         if self.failed_login_attempts >= 5:
@@ -110,13 +149,24 @@ class User(UserMixin, db.Model): # (Anthropic, 2025)
             from datetime import timedelta
             self.account_locked_until = datetime.utcnow() + timedelta(minutes=15)
         db.session.commit()
+        
+        """ Increment failed login attempts and lock if threshold exceeded.
 
-    # Reset failed login attempts on successfully logging in.
+        Returns:
+            Updates failed_login_attempts and may set account_locked_until.
+        """
+
     def reset_failed_login(self): # (Anthropic, 2025)
         self.failed_login_attempts = 0
         self.account_locked_until = None
         self.last_login = datetime.utcnow()
         db.session.commit()
+        
+        """ Reset failed login attempts on successfully logging in.
+
+        Side Effects:
+            Resets failed_login_attempts and account_locked_until.
+        """
 
 # Audit log model, for tracking all the CRUD operations and providing accountability with security monitoring.
 class AuditLog(db.Model): # (Anthropic, 2025)
@@ -136,8 +186,6 @@ class AuditLog(db.Model): # (Anthropic, 2025)
         return f'<AuditLog {self.action} by User {self.user_id} at {self.timestamp}>'
 
 @login_manager.user_loader
-
-# Flask-Login, checks both admin and user databases. Required for session management, the ID format is "admin_X" for admin users, "user_X" for users.
 def load_user(user_id): # (Anthropic, 2025)
         if user_id.startswith('admin_'):
             # Loads from thte admin database.
@@ -158,4 +206,13 @@ def load_user(user_id): # (Anthropic, 2025)
                 user.id = user_id
                 user.is_admin = False
             return user
+        
+        """ Flask-Login user loader for both admin and user databases.
+
+        Args:
+            user_id: User ID string, prefixed with 'admin_' or 'user_'.
+
+        Returns:
+            User or AdminUser instance, or None if not found.
+        """
 

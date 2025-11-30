@@ -33,7 +33,6 @@ if 'MONGODB_URI' not in os.environ:
 from app import create_app, db
 from app.models import User
 
-# Create application for testing session which is shared across all tests.
 @pytest.fixture(scope='session')
 def app(): # (Anthropic, 2025)
     app = create_app('testing')
@@ -50,7 +49,12 @@ def app(): # (Anthropic, 2025)
     })
     return app
 
-# Session-wide test database.
+    """ Create application for testing session which is shared across all tests.
+
+    Returns:
+        Flask app instance configured for testing.
+    """
+
 @pytest.fixture(scope='session')
 def _db(app): # (Anthropic, 2025)
     with app.app_context():
@@ -62,8 +66,16 @@ def _db(app): # (Anthropic, 2025)
         db.create_all()
         yield db
         db.drop_all()
+        
+    """ Session-wide test database.
 
-# Check if MongoDB is available, used for conditional skipping.
+    Args:
+        app: Flask application fixture.
+
+    Yields:
+        SQLAlchemy db instance with all tables created.
+    """
+
 @pytest.fixture(scope='session')
 def mongodb_available(app): # (Anthropic, 2025)
     with app.app_context():
@@ -76,8 +88,16 @@ def mongodb_available(app): # (Anthropic, 2025)
             return True
         except Exception:
             return False
+        
+    """ Check if MongoDB is available, used for conditional skipping.
 
-# Session-wide MongoDB connection, only if available.
+    Args:
+        app: Flask application fixture.
+
+    Returns:
+        True if MongoDB is available, False otherwise.
+    """
+
 @pytest.fixture(scope='session')
 def _mongodb(app, mongodb_available): # (Anthropic, 2025)
     if not mongodb_available:
@@ -91,8 +111,17 @@ def _mongodb(app, mongodb_available): # (Anthropic, 2025)
             mongo_db.client.drop_database('SecureAppDB')
         except Exception:
             pass
+        
+    """ Session-wide MongoDB connection, only if available.
 
-# Function-scoped database cleans up after each test, use this in tests that need SQLAlchemy DB.
+    Args:
+        app: Flask application fixture.
+        mongodb_available: Boolean indicating MongoDB availability.
+
+    Yields:
+        MongoDB client instance for testing.
+    """
+
 @pytest.fixture(scope='function')
 def init_database(app, _db): # (Anthropic, 2025)
     with app.app_context():
@@ -102,8 +131,17 @@ def init_database(app, _db): # (Anthropic, 2025)
         for table in reversed(_db.metadata.sorted_tables):
             _db.session.execute(table.delete())
         _db.session.commit()
+        
+    """ Function-scoped database cleans up after each test, use this in tests that need SQLAlchemy DB.
 
-# Function-scoped MongoDB - cleans up after each test. Use this in tests that need MongoDB.
+    Args:
+        app: Flask application fixture.
+        _db: SQLAlchemy db fixture.
+
+    Yields:
+        Cleaned SQLAlchemy db instance for each test.
+    """
+
 @pytest.fixture(scope='function')
 def init_mongodb(app, _mongodb): # (Anthropic, 2025)
     with app.app_context():
@@ -115,25 +153,57 @@ def init_mongodb(app, _mongodb): # (Anthropic, 2025)
         except Exception:
             # If cleanup fails, it's not critical
             pass
+        
+    """ Function-scoped MongoDB - cleans up after each test. Use this in tests that need MongoDB.
 
-# Create test client.
+    Args:
+        app: Flask application fixture.
+        _mongodb: MongoDB client fixture.
+
+    Yields:
+        Cleaned MongoDB client instance for each test.
+    """
+
 @pytest.fixture(scope='function')
 def client(app): # (Anthropic, 2025)
     return app.test_client()
+    """ Create test client.
 
-# Create application context.
+    Args:
+        app: Flask application fixture.
+
+    Returns:
+        Flask test client.
+    """
+
 @pytest.fixture(scope='function')
 def app_context(app): # (Anthropic, 2025)
     with app.app_context():
         yield app
+        
+    """ Create application context.
 
-# Get bcrypt instance.
+    Args:
+        app: Flask application fixture.
+
+    Yields:
+        Application context for the duration of the test.
+    """
+
 @pytest.fixture(scope='function')
 def bcrypt_instance(app): # (Anthropic, 2025)
     from flask_bcrypt import Bcrypt
     return Bcrypt(app)
 
-# Create a test user, reusable across tests.
+    """ Get bcrypt instance.
+
+    Args:
+        app: Flask application fixture.
+
+    Returns:
+        Flask-Bcrypt instance.
+    """
+
 @pytest.fixture(scope='function')
 def test_user(init_database, bcrypt_instance): # (Anthropic, 2025)
     user = User()
@@ -146,7 +216,16 @@ def test_user(init_database, bcrypt_instance): # (Anthropic, 2025)
     db.session.refresh(user)
     return user
 
-# Create an admin user for testing.
+    """ Create a test user, reusable across tests.
+
+    Args:
+        init_database: Clean database fixture.
+        bcrypt_instance: Flask-Bcrypt instance.
+
+    Returns:
+        User instance.
+    """
+
 @pytest.fixture(scope='function')
 def admin_user(init_database, bcrypt_instance): # (Anthropic, 2025)
     from app.admin_models import AdminUser
@@ -160,7 +239,16 @@ def admin_user(init_database, bcrypt_instance): # (Anthropic, 2025)
     db.session.refresh(admin)
     return admin
 
-# Create a user for testing.
+    """ Create an admin user for testing.
+
+    Args:
+        init_database: Clean database fixture.
+        bcrypt_instance: Flask-Bcrypt instance.
+
+    Returns:
+        AdminUser instance.
+    """
+
 @pytest.fixture(scope='function')
 def standard_user(init_database, bcrypt_instance): # (Anthropic, 2025)
     user = User()
@@ -174,7 +262,16 @@ def standard_user(init_database, bcrypt_instance): # (Anthropic, 2025)
     db.session.refresh(user)
     return user
 
-# Create an authenticated test client.
+    """ Create a standard user with patient ID.
+
+    Args:
+        init_database: Clean database fixture.
+        bcrypt_instance: Flask-Bcrypt instance.
+
+    Returns:
+        User instance with patient ID.
+    """
+
 @pytest.fixture(scope='function')
 def authenticated_client(client, test_user): # (Anthropic, 2025)
     with client:
@@ -182,8 +279,17 @@ def authenticated_client(client, test_user): # (Anthropic, 2025)
             session['_user_id'] = str(test_user.id)
             session['_fresh'] = True
         yield client
+        
+    """ Create an authenticated test client.
 
-# Provide sample patient data for testing.
+    Args:
+        client: Flask test client fixture.
+        test_user: User instance.
+
+    Yields:
+        Authenticated Flask test client.
+    """
+
 @pytest.fixture(scope='function')
 def sample_patient_data(): # (Anthropic, 2025)
     return {
@@ -200,8 +306,13 @@ def sample_patient_data(): # (Anthropic, 2025)
         'smoking_status': 'never smoked',
         'stroke': 0
     }
+    
+    """ Provide sample patient data for testing.
 
-# Create a mock patient record in MongoDB for testing. Requires MongoDB to be running.
+    Returns:
+        Dictionary of sample patient data.
+    """
+
 @pytest.fixture(scope='function')
 def mock_patient_record(app, init_mongodb, sample_patient_data): # (Anthropic, 2025)
     from app.security import encrypt_patient_record
@@ -213,4 +324,16 @@ def mock_patient_record(app, init_mongodb, sample_patient_data): # (Anthropic, 2
         result = collection.insert_one(encrypted_data)
         
         yield result.inserted_id
+        
+    """ Create a mock patient record in MongoDB for testing. 
+        Requires MongoDB to be running.
+
+    Args:
+        app: Flask application fixture.
+        init_mongodb: Clean MongoDB fixture.
+        sample_patient_data: Dictionary of patient data.
+
+    Yields:
+        Inserted record ID.
+    """
 

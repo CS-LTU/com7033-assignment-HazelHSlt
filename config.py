@@ -15,8 +15,12 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class Config: # (Anthropic, 2025)
-    #Base configuration class with common settings.
-    
+    """Base configuration class for the application with common settings.
+
+    Defines common settings for all environments, including database URIs,
+    security, session, rate limiting, encryption, and email configuration.
+    """
+
     SECRET_KEY = os.environ.get('SECRET_KEY') or os.urandom(32)
     
     # SQLAlchemy Configuration.

@@ -31,7 +31,6 @@ class AdminUser(UserMixin, db.Model): # (Anthropic, 2025)
     def __repr__(self): # (Anthropic, 2025)
         return f'<AdminUser {self.username}>'
     
-    # Check if the account is currently locked.
     def is_account_locked(self): # (Anthropic, 2025)
         if self.account_locked_until:
             if datetime.utcnow() < self.account_locked_until:
@@ -43,7 +42,12 @@ class AdminUser(UserMixin, db.Model): # (Anthropic, 2025)
                 db.session.commit()
         return False
     
-    # Increment failed login attempts and lock if threshold is exceeded.
+        """ Check if the admin account is currently locked.
+
+        Returns:
+            True if locked, False otherwise.
+        """
+
     def increment_failed_login(self): # (Anthropic, 2025)
         self.failed_login_attempts += 1
         if self.failed_login_attempts >= 5:
@@ -51,13 +55,24 @@ class AdminUser(UserMixin, db.Model): # (Anthropic, 2025)
             from datetime import timedelta
             self.account_locked_until = datetime.utcnow() + timedelta(minutes=15)
         db.session.commit()
-    
-    # Reset failed login attempts when successfully logged in.
+        
+        """ Increment failed login attempts and lock if threshold is exceeded.
+
+        Returns:
+            Updates failed_login_attempts and may set account_locked_until.
+        """
+
     def reset_failed_login(self): # (Anthropic, 2025)
         self.failed_login_attempts = 0
         self.account_locked_until = None
         self.last_login = datetime.utcnow()
         db.session.commit()
+        
+        """ Reset failed login attempts when successfully logged in.
+
+        Returns:
+            Resets failed_login_attempts and account_locked_until.
+        """
 
 # Administrator audit log model,for tracking admin operations stored in admin.db.
 class AdminAuditLog(db.Model): # (Anthropic, 2025)

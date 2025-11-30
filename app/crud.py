@@ -23,11 +23,16 @@ import os
 
 crud_bp = Blueprint('crud', __name__)
 
-# Get MongoDB database patient records collection.
 def get_patient_collection(): 
     if mongo_db is None:
         return None
     return mongo_db.patient_records
+
+    """ Get MongoDB database patient records collection.
+
+    Returns:
+        MongoDB collection object or None if not connected.
+    """
 
 @crud_bp.route('/dashboard')
 @login_required
@@ -142,8 +147,13 @@ def dashboard(): # (Anthropic, 2025)
                          search_field=search_field,
                          search_value=search_value,
                          stats=stats)
+    
+    """ Main dashboard displaying patient records for admin users.
 
-# Calculate aggregated statistics for dashboard visualizations.
+    Returns:
+        Rendered dashboard template with records and statistics.
+    """
+
 def calculate_dashboard_stats(collection): # (Anthropic, 2025)
     try:
         # Get all records for analysis.
@@ -227,11 +237,19 @@ def calculate_dashboard_stats(collection): # (Anthropic, 2025)
     except Exception as e:
         current_app.logger.error(f"Error calculating dashboard stats: {e}")
         return {}
+    
+    """ Calculate aggregated statistics for dashboard visualizations.
+
+    Args:
+        collection: MongoDB collection of patient records.
+
+    Returns:
+        Dictionary of aggregated statistics.
+    """
 
 @crud_bp.route('/user-dashboard')
 @login_required
 
-# User dashboard for users, displays only their own patient records.
 def user_dashboard(): # (Anthropic, 2025)
     # Check if user is not admin.
     if hasattr(current_user, 'is_admin') and current_user.is_admin:
@@ -292,13 +310,17 @@ def user_dashboard(): # (Anthropic, 2025)
         current_app.logger.error(f"Error loading user dashboard: {e}")
         flash('Error loading your patient record.', 'danger')
         return render_template('crud/user_dashboard.html', record=None)
+    
+    """ User dashboard for users, displays only their own patient records.
 
+    Returns:
+        Rendered user dashboard template with user's record.
+    """
 
 @crud_bp.route('/patient/create', methods=['GET', 'POST'])
 @login_required
 @limiter.limit("20 per hour")
 
-# Creation of new patient records, admin only privilege.
 def create_patient(): # (Anthropic, 2025)
     form = PatientRecordForm()
     
@@ -410,11 +432,16 @@ def create_patient(): # (Anthropic, 2025)
     
     return render_template('crud/create.html', form=form)
 
+    """ Creation of new patient records, admin only privilege.
+
+    Returns:
+        Redirect or rendered template for patient creation.
+    """
+
 
 @crud_bp.route('/patient/<patient_id>')
 @login_required
 
-# View individual patient records.
 def view_patient(patient_id): # (Anthropic, 2025)
     collection = get_patient_collection()
     
@@ -451,12 +478,20 @@ def view_patient(patient_id): # (Anthropic, 2025)
     except InvalidId:
         flash('Invalid patient ID.', 'danger')
         return redirect(url_for('crud.dashboard'))
+    
+    """ View individual patient records.
+
+    Args:
+        patient_id: MongoDB ObjectId string.
+
+    Returns:
+        Rendered template for viewing a patient record or redirect.
+    """
 
 @crud_bp.route('/patient/<patient_id>/edit', methods=['GET', 'POST'])
 @login_required
 @limiter.limit("30 per hour")
 
-# Edit existing patient records.
 def edit_patient(patient_id):
     collection = get_patient_collection()
     
@@ -550,12 +585,20 @@ def edit_patient(patient_id):
     except InvalidId:
         flash('Invalid patient ID.', 'danger')
         return redirect(url_for('crud.dashboard'))
+    
+    """ Edit existing patient records.
+
+    Args:
+        patient_id: MongoDB ObjectId string.
+
+    Returns:
+        Rendered template for editing a patient record or redirect.
+    """
 
 @crud_bp.route('/patient/<patient_id>/delete', methods=['POST'])
 @login_required
 @limiter.limit("10 per hour")
 
-# Deletion of patient records.
 def delete_patient(patient_id): # (Anthropic, 2025)
 
     collection = get_patient_collection()
@@ -589,4 +632,13 @@ def delete_patient(patient_id): # (Anthropic, 2025)
         flash('An error occurred while deleting the record. Please try again.', 'danger')
     
     return redirect(url_for('crud.dashboard'))
+
+    """ Deletion of patient records.
+
+    Args:
+        patient_id: MongoDB ObjectId string.
+
+    Returns:
+        Redirect to dashboard after deletion.
+    """
 

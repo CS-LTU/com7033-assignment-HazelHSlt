@@ -11,8 +11,7 @@ from app.forms import PatientRecordForm
 from app.security import encrypt_patient_record, generate_search_hash
 
 class TestPatientIDForm:
-    # Test PatientRecordForm patient_id field.
-    # Test that patient_id field exists in form.
+
     def test_patient_id_field_exists(self, app): # (Anthropic, 2025)
         from wtforms import IntegerField
         with app.app_context():
@@ -20,24 +19,51 @@ class TestPatientIDForm:
             assert hasattr(form, 'patient_id')
             # Verify it's actually a form field, not just an attribute.
             assert isinstance(form.patient_id, IntegerField) or hasattr(form.patient_id, 'data')
-    
-    # Test that patient_id is optional.
+            
+        """ Test that the patient_id field exists in PatientRecordForm.
+
+        Args:
+            app: Flask app fixture.
+
+        Asserts:
+            The form has a patient_id field of the correct type.
+        """
+
     def test_patient_id_optional(self, app, sample_patient_data): # (Anthropic, 2025)
         with app.app_context():
             form = PatientRecordForm(**{k: str(v) if isinstance(v, (int, float)) else v 
                                         for k, v in sample_patient_data.items()})
             assert form.patient_id.data is None
+        
+        """ Test that patient_id is optional in PatientRecordForm.
+
+        Args:
+            app: Flask app fixture.
+            sample_patient_data: Dictionary of patient data.
+
+        Asserts:
+            The patient_id field is None if not provided.
+        """
     
-    # Test that patient_id accepts valid positive integers.
     def test_patient_id_accepts_valid_values(self, app, sample_patient_data): # (Anthropic, 2025)
+
         with app.app_context():
             data = {k: str(v) if isinstance(v, (int, float)) else v 
                    for k, v in sample_patient_data.items()}
             data['patient_id'] = 12345
             form = PatientRecordForm(**data)
             assert form.patient_id.data == 12345
+            
+        """ Test that patient_id accepts valid positive integers.
 
-# Test that users cannot modify their patient_id.
+        Args:
+            app: Flask app fixture.
+            sample_patient_data: Dictionary of patient data.
+
+        Asserts:
+            The patient_id field is set to the provided integer.
+        """
+
 class TestPatientIDProtection: 
     # Test that patient_id is not in the change email form.
     def test_user_patient_id_not_in_change_email_form(self, app): # (Anthropic, 2025)
@@ -45,15 +71,31 @@ class TestPatientIDProtection:
         with app.app_context():
             form = ChangeEmailForm()
             assert not hasattr(form, 'patient_id')
+            
+        """ Test that patient_id is not present in ChangeEmailForm.
+
+        Args:
+            app: Flask app fixture.
+
+        Asserts:
+            The form does not have a patient_id field.
+        """
     
-    # Test that patient_id is not in the password change form.
     def test_user_patient_id_not_in_password_form(self, app): # (Anthropic, 2025)
         from app.forms import ChangePasswordForm
         with app.app_context():
             form = ChangePasswordForm()
             assert not hasattr(form, 'patient_id')
+            
+        """ Test that patient_id is not in the password change form.
+
+        Args:
+            app: Flask app fixture.
+
+        Asserts:
+            The form does not have a patient_id field.
+        """
     
-    # Test that patient_id is displayed but not editable in userpage.
     def test_patient_id_display_only_in_userpage(self, client, standard_user): # (Anthropic, 2025)
         with client:
             client.post('/login', data={
@@ -66,9 +108,17 @@ class TestPatientIDProtection:
             assert b'12345' in response.data
             assert b'name="patient_id"' not in response.data
             
-# Test security aspects of patient ID handling, requires MongoDB.
+        """ Test that patient_id is displayed but not editable in userpage.
+
+        Args:
+            client: Flask test client.
+            standard_user: User fixture.
+
+        Asserts:
+            patient_id is shown in the page but not as an editable field.
+        """
+            
 class TestPatientIDSecurity:
-    # Test that patient_id is encrypted when stored in MongoDB.
     def test_patient_id_encrypted_in_database(self, app, init_mongodb, mock_patient_record): # (Anthropic, 2025)
         with app.app_context():
             collection = init_mongodb.patient_records
@@ -79,8 +129,18 @@ class TestPatientIDSecurity:
             assert record['id'] != '12345', "ID should be encrypted"
             assert record['id'] != 12345, "ID should be encrypted"
             assert 'id_search' in record, "Search hash missing"
-    
-    # Test that searchable hash is generated for patient_id, doesn't require MongoDB.
+            
+        """ Test that patient_id is encrypted when stored in MongoDB.
+
+        Args:
+            app: Flask app fixture.
+            init_mongodb: MongoDB fixture.
+            mock_patient_record: Inserted patient record ID.
+
+        Asserts:
+            The id field is encrypted and id_search exists.
+        """
+
     def test_patient_id_search_hash_generated(self, app): # (Anthropic, 2025)
         with app.app_context():
             patient_data = {
@@ -106,10 +166,18 @@ class TestPatientIDSecurity:
             
             expected_hash = generate_search_hash('54321', 'id')
             assert encrypted_data['id_search'] == expected_hash
+            
+        """ Test that a search hash is generated for patient_id.
+
+        Args:
+            app: Flask app fixture.
+
+        Asserts:
+            The id_search field is present and correct.
+        """
 
 # Enhanced cryptographic security tests for patient ID.
 class TestPatientIDCryptographicSecurity:
-    # Test that same patient_id encrypted twice produces different ciphertexts (IV randomness).
     def test_patient_id_encryption_uniqueness(self, app): # (Anthropic, 2025)
         with app.app_context():
             patient_data_1 = {
@@ -134,8 +202,16 @@ class TestPatientIDCryptographicSecurity:
             # Same plaintext ID should produce different ciphertexts (due to random IV).
             assert encrypted_1['id'] != encrypted_2['id'], \
                 "Encryption should produce different ciphertexts for same input (IV randomness check)"
+        
+        """ Test that encrypting the same patient_id twice produces different ciphertexts.
+
+        Args:
+            app: Flask app fixture.
+
+        Asserts:
+            Ciphertexts for the same plaintext are different (IV randomness).
+        """
     
-    # Test that encrypted patient_id cannot be easily reversed without decryption key.
     def test_patient_id_encryption_not_reversible_without_key(self, app): # (Anthropic, 2025)
         with app.app_context():
             patient_data = {
@@ -172,8 +248,16 @@ class TestPatientIDCryptographicSecurity:
                     "Encrypted ID should not be simple base64 encoding of plaintext"
             except:
                 pass  # If it's not base64, that's fine
+            
+        """ Test that encrypted patient_id cannot be reversed without the key.
+
+        Args:
+            app: Flask app fixture.
+
+        Asserts:
+            Encrypted value does not reveal plaintext and is not trivially decodable.
+        """
     
-    # Test that search hash for same patient_id is consistent for searching.
     def test_patient_id_search_hash_deterministic(self, app): # (Anthropic, 2025)
         with app.app_context():
             hash_1 = generate_search_hash('12345', 'id')
@@ -182,8 +266,16 @@ class TestPatientIDCryptographicSecurity:
             # Search hashes should be identical for same input
             assert hash_1 == hash_2, \
                 "Search hash should be deterministic for searching capability"
+                
+        """ Test that search hash for the same patient_id is deterministic.
+
+        Args:
+            app: Flask app fixture.
+
+        Asserts:
+            Hashes for the same input are identical.
+        """
     
-    # Test that different patient_ids produce different search hashes.
     def test_patient_id_search_hash_collision_resistance(self, app): # (Anthropic, 2025)
         with app.app_context():
             hash_1 = generate_search_hash('12345', 'id')
@@ -194,8 +286,16 @@ class TestPatientIDCryptographicSecurity:
             assert hash_1 != hash_2, "Different patient IDs should have different hashes"
             assert hash_1 != hash_3, "Different patient IDs should have different hashes"
             assert hash_2 != hash_3, "Different patient IDs should have different hashes"
+
+        """ Test that different patient_ids produce different search hashes.
+
+        Args:
+            app: Flask app fixture.
+
+        Asserts:
+            Hashes for different IDs are unique.
+        """
     
-    # Test that search hash cannot be reversed to recover patient_id.
     def test_patient_id_search_hash_not_reversible(self, app): # (Anthropic, 2025)
         with app.app_context():
             original_id = '98765'
@@ -211,8 +311,16 @@ class TestPatientIDCryptographicSecurity:
             
             assert len(hash_short) == len(hash_long), \
                 "Hash should be fixed length (proper hashing algorithm)"
+
+        """Test that search hash cannot be reversed to recover patient_id.
+
+        Args:
+            app: Flask app fixture.
+
+        Asserts:
+            Hash does not contain plaintext and is fixed length.
+        """
     
-    # Test that encryption includes authentication (AEAD) to prevent tampering.
     def test_patient_id_encryption_uses_authenticated_encryption(self, app): # (Anthropic, 2025)
         with app.app_context():
             patient_data = {
@@ -241,8 +349,16 @@ class TestPatientIDCryptographicSecurity:
             decrypted_data = decrypt_patient_record(encrypted_data)
             assert decrypted_data['id'] == '77777', \
                 "Decryption should recover original ID"
+                
+        """ Test that encryption includes authentication (AEAD) to prevent tampering.
 
-    # Test that tampered encrypted patient_id is rejected.
+        Args:
+            app: Flask app fixture.
+
+        Asserts:
+            Decryption works and recovers the original ID.
+        """
+
     def test_patient_id_encryption_rejects_tampered_data(self, app): # (Anthropic, 2025)
         with app.app_context():
             from app.security import decrypt_patient_record
@@ -270,6 +386,15 @@ class TestPatientIDCryptographicSecurity:
             # Should raise an exception (InvalidToken or similar)
             with pytest.raises(Exception):
                 decrypt_patient_record(tampered_data)
+
+        """ Test that tampered encrypted patient_id is rejected during decryption.
+
+        Args:
+            app: Flask app fixture.
+
+        Asserts:
+            Decryption raises an exception for tampered data.
+        """
 
 if __name__ == '__main__':
     pytest.main([__file__, '-v'])

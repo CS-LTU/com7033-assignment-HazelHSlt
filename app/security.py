@@ -23,7 +23,6 @@ class EncryptionError(Exception): # (Anthropic, 2025)
 class DecryptionError(Exception): # (Anthropic, 2025)
     pass
 
-# Get Fernet cipher for encryption/decryption and return none if not configured.
 def get_cipher(): # (Anthropic, 2025)
     key = current_app.config.get('ENCRYPTION_KEY')
     if key:
@@ -32,7 +31,12 @@ def get_cipher(): # (Anthropic, 2025)
         return Fernet(key)
     return None
 
-# Get HMAC key for searchable hashing and uses the same key as Fernet for simplicity.
+    """ Get Fernet cipher for encryption/decryption and return none if not configured.
+
+    Returns:
+        Fernet cipher instance if key is configured, else None.
+    """
+
 def get_hmac_key(): # (Anthropic, 2025)
     key = current_app.config.get('ENCRYPTION_KEY')
     if not key:
@@ -41,8 +45,12 @@ def get_hmac_key(): # (Anthropic, 2025)
     if isinstance(key, str):
         key = key.encode()
     return key
+    """ Get HMAC key for searchable hashing and uses the same key as Fernet for simplicity.
 
-# Generate deterministic HMAC-based hash for searching encrypted fields, same value + field_name always produces same hash.
+    Returns:
+        HMAC key bytes if configured, else None.
+    """
+
 def generate_search_hash(value, field_name): # (Anthropic, 2025)
     if value is None:
         return None
@@ -63,8 +71,21 @@ def generate_search_hash(value, field_name): # (Anthropic, 2025)
     except Exception as e:
         current_app.logger.error(f"Search hash generation error: {e}")
         raise EncryptionError(f"Failed to generate search hash: {e}")
+    
+    """ Generate deterministic HMAC-based hash for searching encrypted fields, 
+        same value + field_name always produces same hash.
 
-# Encrypt sensitive data using Fernet.
+    Args:
+        value: Value to hash.
+        field_name: Name of the field.
+
+    Returns:
+        Hex digest string of the HMAC hash.
+
+    Raises:
+        EncryptionError: If HMAC key is not configured or hashing fails.
+    """
+
 def encrypt_field(data): # (Anthropic, 2025)
     if data is None:
         return None
@@ -89,6 +110,18 @@ def encrypt_field(data): # (Anthropic, 2025)
         current_app.logger.error(f"Encryption error: {e}")
         raise EncryptionError(f"Failed to encrypt data: {e}")
     
+    """ Encrypt sensitive data using Fernet.
+
+    Args:
+        data: Data to encrypt.
+
+    Returns:
+        Encrypted string.
+
+    Raises:
+        EncryptionError: If encryption fails or key is not configured.
+    """
+
 # Decrypt sensitive data using Fernet and error if decryption fails.
 def decrypt_field(encrypted_data): # (Anthropic, 2025)
     if encrypted_data is None:
@@ -109,8 +142,20 @@ def decrypt_field(encrypted_data): # (Anthropic, 2025)
         current_app.logger.error(f"Decryption error: {e}")
         # Raise exception for tampered/invalid data (fail-secure)
         raise DecryptionError(f"Failed to decrypt data: {e}") from e
+    
+    """ Decrypt sensitive data using Fernet.
 
-# Sanitise user input to prevent "Cross site scripting" (XSS) attacks. XSS is a common web vulnerability where attackers inject malicious scripts into web page content, ususally using HTML/JavaScript.
+    Args:
+        encrypted_data: Encrypted data string or bytes.
+
+    Returns:
+        Decrypted string.
+
+    Raises:
+        EncryptionError: If key is not configured.
+        DecryptionError: If decryption fails.
+    """
+
 def sanitize_input(text, strip_tags=True): # (Anthropic, 2025)
     if text is None:
         return None
@@ -135,7 +180,18 @@ def sanitize_input(text, strip_tags=True): # (Anthropic, 2025)
         cleaned = re.sub(pattern, '', cleaned, flags=re.IGNORECASE)
     return cleaned
 
-# Validate the password so it meets the security requirements.
+    """ Sanitise user input to prevent "Cross site scripting" (XSS) attacks. 
+        XSS is a common web vulnerability where attackers inject malicious scripts into web page content, 
+        usually using HTML/JavaScript.
+
+    Args:
+        text: Input string to sanitise.
+        strip_tags: Whether to remove all HTML tags.
+
+    Returns:
+        Sanitised string.
+    """
+
 def validate_password_strength(password): # (Anthropic, 2025)
     if len(password) < 12:
         return False, "Password must be at least 12 characters long."
@@ -161,7 +217,15 @@ def validate_password_strength(password): # (Anthropic, 2025)
         return False, "This password is too common. Please choose a more unique password."
     return True, None
 
-# Validate patient records data before insertion or update into the database.
+    """ Validate the password so it meets the security requirements.
+
+    Args:
+        password: Password string.
+
+    Returns:
+        Tuple (is_valid: bool, error_message: str or None).
+    """
+
 def validate_patient_data(data): # (Anthropic, 2025)
     errors = {}
     # Validate age.
@@ -217,6 +281,15 @@ def validate_patient_data(data): # (Anthropic, 2025)
             errors['stroke'] = "Stroke must be 0 or 1."
     return len(errors) == 0, errors
 
+    """ Validate patient records data before insertion or update into the database.
+
+    Args:
+        data: Dictionary of patient data.
+
+    Returns:
+        Tuple (is_valid: bool, errors: dict).
+    """
+
 # Fields that should be encrypted for "General Data Protection Regulation" (GDPR), and "ISO 27001" (International Organization for Standardization) compliance, since they are "Protected Health Information" (PHI) and "Personally Identifiable Information" (PII) fields.
 ENCRYPTED_FIELDS = [
     'id',
@@ -237,7 +310,6 @@ SEARCHABLE_ENCRYPTED_FIELDS = [
     'heart_disease'
 ]
 
-# Hybrid encryption function for patient records.
 def encrypt_patient_record(record): # (Anthropic, 2025)
     encrypted_record = record.copy()
     
@@ -255,7 +327,15 @@ def encrypt_patient_record(record): # (Anthropic, 2025)
                 encrypted_record[search_field_name] = generate_search_hash(value_str, field)
     return encrypted_record
 
-# Decrypt sensitive fields in a patient record and removes search hash fields from display.
+    """ Hybrid encryption function for patient records.
+
+    Args:
+        record: Patient record dictionary.
+
+    Returns:
+        Dictionary with encrypted fields and search hashes.
+    """
+
 def decrypt_patient_record(record): # (Anthropic, 2025)
     decrypted_record = record.copy()
     
@@ -296,11 +376,27 @@ def decrypt_patient_record(record): # (Anthropic, 2025)
             del decrypted_record[search_field_name]
     return decrypted_record
 
-# Decrypt multiple patient records efficiently and returns a list of the decrypted patient records.
+    """ Decrypt sensitive fields in a patient record and removes search hash fields from display.
+
+    Args:
+        record: Encrypted patient record dictionary.
+
+    Returns:
+        Decrypted patient record dictionary.
+    """
+
 def decrypt_patient_records_batch(records): # (Anthropic, 2025)
     return [decrypt_patient_record(record) for record in records]
 
-# Creates audit log entries.
+    """ Decrypt multiple patient records efficiently and returns a list of the decrypted patient records.
+
+    Args:
+        records: List of encrypted patient record dictionaries.
+
+    Returns:
+        List of decrypted patient record dictionaries.
+    """
+
 def log_audit(user_id, action, table_name, record_id=None, ip_address=None, user_agent=None, details=None): # (Anthropic, 2025)
     from app.models import AuditLog
     from app import db
@@ -325,10 +421,30 @@ def log_audit(user_id, action, table_name, record_id=None, ip_address=None, user
     except Exception as e:
         current_app.logger.error(f"Audit logging error: {e}")
         db.session.rollback()
+        
+    """ Create audit log entries.
 
-# Generate a 6-digit 2FA code.
+    Args:
+        user_id: ID of the user performing the action.
+        action: Action performed.
+        table_name: Name of the table affected.
+        record_id: ID of the affected record.
+        ip_address: IP address of the user.
+        user_agent: User agent string.
+        details: Additional details (dict or string).
+
+    Side Effects:
+        Commits an AuditLog entry to the database.
+    """
+
 def generate_2fa_code(): # (Anthropic, 2025)
     return ''.join([str(random.randint(0, 9)) for _ in range(6)])
+
+    """ Generate a 6-digit 2FA code.
+
+    Returns:
+        String of 6 random digits.
+    """
 
 # Send 2FA code via email using Flask-Mail.
 def send_2fa_code(email, code): # (Anthropic, 2025)
@@ -498,8 +614,15 @@ def store_2fa_code(session, code, user_id): # (Anthropic, 2025)
     session['2fa_code'] = code
     session['2fa_user_id'] = user_id
     session['2fa_expiry'] = (datetime.utcnow() + timedelta(minutes=10)).isoformat()
+    
+    """ Store 2FA code in session with expiration.
 
-# Verify 2FA code from session.
+    Args:
+        session: Flask session object.
+        code: 2FA code string.
+        user_id: User ID associated with the code.
+    """
+
 def verify_2fa_code(session, entered_code, user_id): # (Anthropic, 2025)
     stored_code = session.get('2fa_code')
     stored_user_id = session.get('2fa_user_id')
@@ -529,3 +652,14 @@ def verify_2fa_code(session, entered_code, user_id): # (Anthropic, 2025)
         return True, "Code verified successfully."
     
     return False, "Invalid code. Please try again."
+
+    """ Verify 2FA code from session.
+
+    Args:
+        session: Flask session object.
+        entered_code: Code entered by the user.
+        user_id: User ID to verify against.
+
+    Returns:
+        Tuple (is_valid: bool, message: str).
+    """

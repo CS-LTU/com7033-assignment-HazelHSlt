@@ -90,6 +90,12 @@ def register(): # (Anthropic, 2025)
     
     return render_template('auth/register.html', form=form)
 
+    """ User registration endpoint.
+
+    Returns:
+        Rendered registration template or redirect.
+    """
+
 @auth_bp.route('/login', methods=['GET', 'POST'])
 @limiter.limit("20 per 5 minutes")  # Rate limit login attempts.
 
@@ -211,6 +217,12 @@ def login(): # (Anthropic, 2025)
     
     return render_template('auth/login.html', form=form)
 
+    """ User login endpoint, authenticates users from both admin and user databases.
+
+    Returns:
+        Rendered login template or redirect.
+    """
+
 @auth_bp.route('/admin-2fa', methods=['GET', 'POST'])
 @limiter.limit("10 per 5 minutes")
 
@@ -259,9 +271,12 @@ def admin_2fa(): # (Anthropic, 2025)
     
     return render_template('auth/admin_2fa.html', form=form)
 
-@auth_bp.route('/logout')
+    """ Admin 2FA verification page.
 
-# User logout endpoint, destroys user's session.
+    Returns:
+        Rendered 2FA verification template or redirect.
+    """
+
 def logout(): # (Anthropic, 2025)
     if current_user.is_authenticated:
         # Extract actual user's ID for logging.
@@ -293,10 +308,15 @@ def logout(): # (Anthropic, 2025)
     
     return redirect(url_for('auth.login'))
 
+    """ User logout endpoint, destroys user's session.
+
+    Returns:
+        Redirect to login page.
+    """
+
 @auth_bp.route('/userpage', methods=['GET'])
 @limiter.limit("20 per hour")
 
-# User account management page, allows users to change password, email, or delete account.
 def userpage(): # (Anthropic, 2025)
     from flask_login import login_required
     from app.forms import ChangePasswordForm, ChangeEmailForm, DeleteAccountForm
@@ -313,6 +333,12 @@ def userpage(): # (Anthropic, 2025)
                          change_password_form=change_password_form,
                          change_email_form=change_email_form,
                          delete_account_form=delete_account_form)
+    
+    """ User account management page, allows users to change password, email, or delete account.
+
+    Returns:
+        Rendered user account management template.
+    """
 
 @auth_bp.route('/change-password', methods=['POST'])
 @limiter.limit("5 per hour")
@@ -402,6 +428,12 @@ def change_password(): # (Anthropic, 2025)
     
     return redirect(url_for('auth.userpage'))
 
+    """ Change user password endpoint.
+
+    Returns:
+        Redirect to user account page.
+    """
+
 @auth_bp.route('/change-email', methods=['POST'])
 @limiter.limit("5 per hour")
 
@@ -477,6 +509,12 @@ def change_email(): # (Anthropic, 2025)
             flash(error, 'danger')
     
     return redirect(url_for('auth.userpage'))
+
+    """ Change user email/username endpoint.
+
+    Returns:
+        Redirect to user account page.
+    """
 
 @auth_bp.route('/delete-account', methods=['POST'])
 @limiter.limit("3 per hour")
@@ -571,6 +609,12 @@ def delete_account(): # (Anthropic, 2025)
     
     return redirect(url_for('auth.userpage'))
 
+    """ Delete user account endpoint.
+
+    Returns:
+        Redirect to user account page or index after deletion.
+    """
+
 @auth_bp.route('/admin/change-email', methods=['POST'])
 @limiter.limit("5 per hour")
 
@@ -632,4 +676,10 @@ def admin_change_email(): # (Anthropic, 2025)
             flash(error, 'danger')
     
     return redirect(url_for('auth.userpage'))
+
+    """ Change admin email endpoint.
+
+    Returns:
+        Redirect to user account page.
+    """
 

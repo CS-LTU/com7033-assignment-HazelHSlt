@@ -19,7 +19,7 @@ load_dotenv()
 BACKUP_DIR = "db_backups"
 os.makedirs(BACKUP_DIR, exist_ok=True)
 
-# 1. Backup SQLite databases (users.db, admin.db)
+# Backup SQLite databases (users.db, admin.db)
 def backup_sqlite(db_filename): # (OpenAI, 2025)
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     base_name = os.path.basename(db_filename)
@@ -30,8 +30,13 @@ def backup_sqlite(db_filename): # (OpenAI, 2025)
         print(f"Backed up {db_filename} to {backup_file}")
     else:
         print(f"SQLite file not found: {db_filename}")
+    """Back up a SQLite database file to the backup directory with a timestamp.
 
-# 2. Backup MongoDB (patient records)
+    Args:
+        db_filename: Path to the SQLite database file.
+    """
+
+# Backup MongoDB patient records, requires mongodump to be installed (can be found at: https://www.mongodb.com/docs/database-tools/mongodump/).
 def backup_mongodb(): # (OpenAI, 2025)
     mongo_uri = os.getenv("MONGODB_URI")
     mongo_db = os.getenv("MONGODB_DB")
@@ -48,6 +53,12 @@ def backup_mongodb(): # (OpenAI, 2025)
         print(f"Backed up MongoDB to {backup_file}")
     except Exception as e:
         print(f"MongoDB backup failed: {e}")
+        
+    """Back up the MongoDB database using mongodump.
+
+    Raises:
+        Exception: If mongodump fails.
+    """
 
 if __name__ == "__main__": # (OpenAI, 2025)
     backup_sqlite(os.path.join("instance", "users.db"))
