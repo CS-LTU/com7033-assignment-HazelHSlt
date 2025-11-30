@@ -1,7 +1,10 @@
 # AI declaration:
 # Github copilot was used for portions of the planning, research, feedback and editing of the software artefact. Mostly utilised for syntax, logic and error checking with ChatGPT and Claude Sonnet 4.5 used as the models.
 
-# Unit tests for security functions, encryption, hashing, sanitization, validation, and fail-secure design.
+''' Unit tests module for security functions.
+
+Tests for encryption, hashing, sanitization, validation, and fail-secure design.
+'''
 
 import os
 import pytest

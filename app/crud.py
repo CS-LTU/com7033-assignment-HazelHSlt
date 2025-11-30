@@ -1,7 +1,12 @@
 # AI declaration:
 # Github copilot was used for portions of the planning, research, feedback and editing of the software artefact. Mostly utilised for syntax, logic and error checking with ChatGPT and Claude Sonnet 4.5 used as the models.
 
-# CRUD Operations blueprint, handles create, read, update, and delete operations for healthcare data. Uses the mongoDB database for patient records storage.
+''' CRUD Operations blueprint module.
+
+Handles create, read, update, and delete operations for healthcare data. 
+Uses the mongoDB database for patient records storage.
+'''
+
 from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, current_app
 from flask_login import login_required, current_user
 from app import mongo_db, limiter

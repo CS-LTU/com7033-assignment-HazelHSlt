@@ -1,7 +1,13 @@
 # AI declaration:
 # Github copilot was used for portions of the planning, research, feedback and editing of the software artefact. Mostly utilised for syntax, logic and error checking with ChatGPT and Claude Sonnet 4.5 used as the models.
 
-# This is the main application function, it initializes the Flask app, checks environment, initializes databases, creates admin user, imports CSV data, and starts the server with HTTPS.
+
+''' This is the main application entry point.
+
+it will initialize the Flask app, environment settings, initialize databases, 
+create admin user, import CSV data, and start the server with HTTPS.
+'''
+
 import os
 import sys
 from app import create_app, db

@@ -1,7 +1,11 @@
 # AI declaration:
 # Github copilot was used for portions of the planning, research, feedback and editing of the software artefact. Mostly utilised for syntax, logic and error checking with ChatGPT and Claude Sonnet 4.5 used as the models.
 
-# Shared test utilities and helper functions.
+''' Shared test utilities module and helper functions.
+
+Provides functions for use in the other test modules.
+'''
+
 from app import db
 from app.models import User
 

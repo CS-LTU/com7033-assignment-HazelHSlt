@@ -1,7 +1,12 @@
 # AI declaration:
 # Github copilot was used for portions of the planning, research, feedback and editing of the software artifact. Mostly for syntax, logic and error checking with ChatGPT and Clude Sonnet 4.5 used as the models.
 
-# Configuration module for Flask application.
+
+''' Configuration module for Flask application.
+
+This module defines the configurations for the environments, 
+including settings for database connections, security features, session management, and email configuration.   
+'''
 
 import os
 from datetime import timedelta

@@ -1,6 +1,12 @@
 # AI declaration:
 # Github copilot was used for portions of the planning, research, feedback and editing of the software artifact. Mostly for syntax, logic and error checking with ChatGPT and Clude Sonnet 4.5 used as the models.
 
+''' Backup and archiving module for the databases.
+
+This module provides functionality to backup the SQLite and MongoDB databases 
+for both the users and administrators (including audit logs) as well as the main patient records DB.
+'''
+
 import os
 import datetime
 import subprocess

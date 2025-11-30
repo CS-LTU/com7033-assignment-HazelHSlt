@@ -1,7 +1,11 @@
 # AI declaration:
 # Github copilot was used for portions of the planning, research, feedback and editing of the software artefact. Mostly utilised for syntax, logic and error checking with ChatGPT and Claude Sonnet 4.5 used as the models.
 
-# This is the Authentication handler for user registration, login, and logout. With support for both authentication of "admin" and "users".
+''' This is the Authentication module.
+
+Handles user registration, login, and logout. With support for both authentication of "admin" and "users".
+'''
+
 from flask import Blueprint, render_template, redirect, url_for, flash, request, session
 from flask_login import login_user, logout_user, current_user
 from app import db, bcrypt, limiter, mongo_db
