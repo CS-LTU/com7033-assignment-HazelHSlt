@@ -24,8 +24,8 @@ class Config: # (Anthropic, 2025)
     }
     
     # MongoDB Configuration.
-    MONGODB_URI = os.environ.get('MONGODB_URI') or 'mongodb://localhost:27017/?tls=false'
-    MONGODB_DB = os.environ.get('MONGODB_DB') or 'healthcare_db'
+    MONGODB_URI = os.environ.get('MONGODB_URI') or 'mongodb+srv://leedstrinityhazelltu_db_user:OtEtnVn5lGBzDbYb@secureappdb.wgoupdf.mongodb.net/?appName=SecureAppDB'
+    MONGODB_DB = os.environ.get('MONGODB_DB') or 'SecureAppDB'
     
     # Session Configuration.
     SESSION_COOKIE_SECURE = True  # Ensure HTTPS only.

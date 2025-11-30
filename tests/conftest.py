@@ -24,7 +24,7 @@ if 'SECRET_KEY' not in os.environ:
 
 # Set test MongoDB URI to use the test database, (Anthropic, 2025).
 if 'MONGODB_URI' not in os.environ:
-    os.environ['MONGODB_URI'] = 'mongodb://localhost:27017/healthcare_test'
+    os.environ['MONGODB_URI'] = 'mongodb+srv://leedstrinityhazelltu_db_user:OtEtnVn5lGBzDbYb@secureappdb.wgoupdf.mongodb.net/?appName=SecureAppDB'
 
 from app import create_app, db
 from app.models import User
@@ -42,7 +42,7 @@ def app(): # (Anthropic, 2025)
         'SQLALCHEMY_BINDS': {
             'admin': 'sqlite:///:memory:'  # Separate in-memory DB for admin.
         },
-        'MONGODB_URI': os.environ.get('MONGODB_URI', 'mongodb://localhost:27017/healthcare_test'),
+        'MONGODB_URI': os.environ.get('MONGODB_URI', 'mongodb+srv://leedstrinityhazelltu_db_user:OtEtnVn5lGBzDbYb@secureappdb.wgoupdf.mongodb.net/?appName=SecureAppDB'),
     })
     return app
 
@@ -77,14 +77,14 @@ def mongodb_available(app): # (Anthropic, 2025)
 @pytest.fixture(scope='session')
 def _mongodb(app, mongodb_available): # (Anthropic, 2025)
     if not mongodb_available:
-        pytest.skip("MongoDB not available - ensure MongoDB is running on localhost:27017")
+        pytest.skip("MongoDB not available - Please check cloud atlas connection settings.")
     
     with app.app_context():
         from app import mongo_db
         yield mongo_db
         # Clean up test database at end of session.
         try:
-            mongo_db.client.drop_database('healthcare_test')
+            mongo_db.client.drop_database('SecureAppDB')
         except Exception:
             pass
 

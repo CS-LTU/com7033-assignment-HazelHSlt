@@ -7,6 +7,8 @@ import sys
 from app import create_app, db
 from app.models import User, AuditLog
 from cryptography.fernet import Fernet
+from apscheduler.schedulers.background import BackgroundScheduler
+import subprocess
 
 # makes a secret key for Flask-WTF, used for SCRF tokens and secure session handling.
 def generate_secret_key():
@@ -181,8 +183,8 @@ def import_csv_data(app): # (Anthropic, 2025)
     with app.app_context():
         try:
             # Check if MongoDB is connected.
-            mongo_uri = app.config.get('MONGODB_URI', 'mongodb://localhost:27017/')
-            mongo_db_name = app.config.get('MONGODB_DB', 'healthcare_db')
+            mongo_uri = app.config.get('MONGODB_URI', 'mongodb+srv://leedstrinityhazelltu_db_user:OtEtnVn5lGBzDbYb@secureappdb.wgoupdf.mongodb.net/?appName=SecureAppDB')
+            mongo_db_name = app.config.get('MONGODB_DB', 'SecureAppDB')
             
             client = MongoClient(mongo_uri, serverSelectionTimeoutMS=2000)
             db = client[mongo_db_name]
@@ -273,6 +275,10 @@ def initialize_database(app): # (Anthropic, 2025)
         except Exception as e:
             print(f"Database initialization error: {e}")
             sys.exit(1)
+
+# Schedule periodic backups using APScheduler.
+def run_backup_script(): # (OpenAI, 2025)
+    subprocess.run(["python", "backup_archive.py"])
             
 # Main execution function.
 def main(): # (Anthropic, 2025)
@@ -293,6 +299,11 @@ def main(): # (Anthropic, 2025)
     
     # Initialize database.
     initialize_database(app)
+    
+    # Schedule backup every 24 hours
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(run_backup_script, 'interval', hours=24)
+    scheduler.start()
     
     # Print startup information, with the localhost URL.
     print("\n" + "="*70)
@@ -326,6 +337,7 @@ def main(): # (Anthropic, 2025)
         )
     except KeyboardInterrupt:
         print("\n\nServer stopped")
+        scheduler.shutdown()
 
 if __name__ == '__main__':
     main()

@@ -19,6 +19,9 @@ instance/
 *.db
 *.sqlite
 *.sqlite3
+*.bak
+*.archive
+db_backups/
 
 # Security - Admin credentials
 Admin_login.txt
