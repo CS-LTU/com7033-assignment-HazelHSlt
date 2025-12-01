@@ -1,10 +1,10 @@
 # AI declaration:
 # Github copilot was used for portions of the planning, research, feedback and editing of the software artefact. Mostly utilised for syntax, logic and error checking with ChatGPT and Claude Sonnet 4.5 used as the models.
 
-''' Test Patient ID module Functionality.
+""" Test Patient ID module Functionality.
 
 Tests for the admin's ability to specify patient IDs and user protection from modification.
-'''
+"""
 
 import pytest
 from app.forms import PatientRecordForm

@@ -1,11 +1,11 @@
 # AI declaration:
 # Github copilot was used for portions of the planning, research, feedback and editing of the software artefact. Mostly utilised for syntax, logic and error checking with ChatGPT and Claude Sonnet 4.5 used as the models.
 
-''' CRUD Operations blueprint module.
+""" CRUD Operations blueprint module.
 
 Handles create, read, update, and delete operations for healthcare data. 
 Uses the mongoDB database for patient records storage.
-'''
+"""
 
 from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, current_app
 from flask_login import login_required, current_user
@@ -16,6 +16,7 @@ from app.security import (log_audit, sanitize_input, validate_patient_data,
                           decrypt_patient_records_batch, generate_search_hash,
                           decrypt_field, EncryptionError, DecryptionError,
                           SEARCHABLE_ENCRYPTED_FIELDS)
+from app.SVMcrudHelper import add_predictions_to_records, get_model_metadata, calculate_ai_risk_statistics
 from bson.objectid import ObjectId
 from bson.errors import InvalidId
 import csv
@@ -23,7 +24,7 @@ import os
 
 crud_bp = Blueprint('crud', __name__)
 
-def get_patient_collection(): 
+def get_patient_collection(): # (Anthropic, 2025)
     if mongo_db is None:
         return None
     return mongo_db.patient_records
@@ -115,6 +116,10 @@ def dashboard(): # (Anthropic, 2025)
     # Decrypt sensitive fields.
     records = decrypt_patient_records_batch(records)
     
+    # Add AI predictions for admin users
+    is_admin = hasattr(current_user, 'is_admin') and current_user.is_admin
+    records = add_predictions_to_records(records, is_admin=is_admin)
+    
     # Convert ObjectId to string for template.
     for record in records:
         record['_id'] = str(record['_id'])
@@ -135,6 +140,9 @@ def dashboard(): # (Anthropic, 2025)
         details=f'Dashboard access, page {page}'
     )
     
+    # Get model metadata for dashboard
+    model_metadata = get_model_metadata()
+    
     search_form = SearchForm()
     
     return render_template('crud/dashboard.html', 
@@ -146,7 +154,8 @@ def dashboard(): # (Anthropic, 2025)
                          search_form=search_form,
                          search_field=search_field,
                          search_value=search_value,
-                         stats=stats)
+                         stats=stats,
+                         model_metadata=model_metadata)
     
     """ Main dashboard displaying patient records for admin users.
 
@@ -219,6 +228,9 @@ def calculate_dashboard_stats(collection): # (Anthropic, 2025)
         hypertension_percentage = (hypertension_count / total_records) * 100
         heart_disease_percentage = (heart_disease_count / total_records) * 100
         
+        # Calculate AI prediction statistics
+        ai_predictions = calculate_ai_risk_statistics(decrypted_records)
+        
         return {
             'total_records': total_records,
             'stroke_count': stroke_count,
@@ -232,7 +244,8 @@ def calculate_dashboard_stats(collection): # (Anthropic, 2025)
             'gender_counts': gender_counts,
             'smoking_counts': smoking_counts,
             'age_groups': age_groups,
-            'work_type_counts': work_type_counts
+            'work_type_counts': work_type_counts,
+            'ai_predictions': ai_predictions
         }
     except Exception as e:
         current_app.logger.error(f"Error calculating dashboard stats: {e}")

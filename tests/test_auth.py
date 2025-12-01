@@ -1,10 +1,10 @@
 # AI declaration:
 # Github copilot was used for portions of the planning, research, feedback and editing of the software artefact. Mostly utilised for syntax, logic and error checking with ChatGPT and Claude Sonnet 4.5 used as the models.
 
-''' Unit tests module for authentication and authorization.
+""" Unit tests module for authentication and authorization.
 
 Tests the login, logout, registration, and session management.
-'''
+"""
 
 import pytest
 from datetime import datetime, timedelta

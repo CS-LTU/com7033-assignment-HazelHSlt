@@ -1,11 +1,11 @@
 # AI declaration:
 # Github copilot was used for portions of the planning, research, feedback and editing of the software artefact. Mostly utilised for syntax, logic and error checking with ChatGPT and Claude Sonnet 4.5 used as the models.
 
-''' Flask Application Factory modeule. 
+""" Flask Application Factory modeule. 
 
 Initializes and configures the Flask application with security extensions and 
 supports both SQLite databases for "users.db" (standard users) and the "admin.db" for the administrator.
-'''
+"""
 
 from flask import Flask, render_template
 from flask_sqlalchemy import SQLAlchemy

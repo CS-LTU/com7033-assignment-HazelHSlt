@@ -1,10 +1,10 @@
 # AI declaration:
 # Github copilot was used for portions of the planning, research, feedback and editing of the software artefact. Mostly utilised for syntax, logic and error checking with ChatGPT and Claude Sonnet 4.5 used as the models.
 
-''' Pytest configuration and fixtures for records app.
+""" Pytest configuration and fixtures for records app.
 
 This module sets up the testing environment, including application context.
-''' 
+"""
 
 import pytest
 import os

@@ -1,10 +1,10 @@
 # AI declaration:
 # Github copilot was used for portions of the planning, research, feedback and editing of the software artefact. Mostly utilised for syntax, logic and error checking with ChatGPT and Claude Sonnet 4.5 used as the models.
 
-''' This is the Database Models module.
+""" This is the Database Models module.
 
 using SQLAlchemy for user authentication and audit logging.
-'''
+"""
 
 from datetime import datetime
 from flask_login import UserMixin

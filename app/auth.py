@@ -1,13 +1,13 @@
 # AI declaration:
 # Github copilot was used for portions of the planning, research, feedback and editing of the software artefact. Mostly utilised for syntax, logic and error checking with ChatGPT and Claude Sonnet 4.5 used as the models.
 
-''' This is the Authentication module.
+""" This is the Authentication module.
 
 Handles user registration, login, and logout. With support for both authentication of "admin" and "users".
-'''
+"""
 
 from flask import Blueprint, render_template, redirect, url_for, flash, request, session
-from flask_login import login_user, logout_user, current_user
+from flask_login import login_user, logout_user, current_user, login_required
 from app import db, bcrypt, limiter, mongo_db
 from app.models import User
 from app.admin_models import AdminUser
@@ -277,6 +277,8 @@ def admin_2fa(): # (Anthropic, 2025)
         Rendered 2FA verification template or redirect.
     """
 
+@auth_bp.route('/logout')
+@login_required
 def logout(): # (Anthropic, 2025)
     if current_user.is_authenticated:
         # Extract actual user's ID for logging.

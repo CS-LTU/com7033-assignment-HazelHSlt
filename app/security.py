@@ -1,12 +1,12 @@
 # AI declaration:
 # Github copilot was used for portions of the planning, research, feedback and editing of the software artefact. Mostly utilised for syntax, logic and error checking with ChatGPT and Claude Sonnet 4.5 used as the models.
 
-''' This is the Security utilities module. 
+""" This is the Security utilities module. 
 
 Providing input sanitization, validation functions and hybrid searchable encryption using 
 Fernet encryption for data security (non-deterministic) and "Hash-based Message Authentication Code (HMAC)" 
 for query searches. Additionally, utilising a "Fail-secure" design by refusing to operate if encryption is unavailable.
-'''
+"""
 
 import bleach
 from cryptography.fernet import Fernet

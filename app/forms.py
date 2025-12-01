@@ -1,13 +1,13 @@
 # AI declaration:
 # Github copilot was used for portions of the planning, research, feedback and editing of the software artefact. Mostly utilised for syntax, logic and error checking with ChatGPT and Claude Sonnet 4.5 used as the models.
 
-''' This is the Flask-WTF Forms module.
+""" This is the Flask-WTF Forms module.
 
 Used to sanitise user input and use "Cross-Site Request Forgery" (CSRF) protection. 
 CSRF is when a different malicious website tricks a user's browser, into submitting unwanted actions. 
 These attacks can be carried out using insecure session cookies to make requests without the user's consent. 
 Flask-WTF generates tokens to validate that only session cookies generated from this site can be accepted).
-'''
+"""
 
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, BooleanField, FloatField, SelectField, IntegerField

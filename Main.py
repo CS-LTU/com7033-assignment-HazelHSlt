@@ -2,11 +2,11 @@
 # Github copilot was used for portions of the planning, research, feedback and editing of the software artefact. Mostly utilised for syntax, logic and error checking with ChatGPT and Claude Sonnet 4.5 used as the models.
 
 
-''' This is the main application entry point.
+""" This is the main application entry point.
 
 it will initialize the Flask app, environment settings, initialize databases, 
 create admin user, import CSV data, and start the server with HTTPS.
-'''
+"""
 
 import os
 import sys
@@ -17,7 +17,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 import subprocess
 
 # makes a secret key for Flask-WTF, used for SCRF tokens and secure session handling.
-def generate_secret_key():
+def generate_secret_key(): # (Anthropic, 2025)
     import secrets
     return secrets.token_hex(32)
     """Generate a random 32-byte hex string for use as a Flask secret key.
@@ -27,7 +27,7 @@ def generate_secret_key():
     """
 
 # encryption at rest for the mongoDB databse for the records, using Fernet.
-def generate_encryption_key():
+def generate_encryption_key(): # (Anthropic, 2025)
     return Fernet.generate_key().decode()
     """Generate a Fernet-compatible encryption key.
 

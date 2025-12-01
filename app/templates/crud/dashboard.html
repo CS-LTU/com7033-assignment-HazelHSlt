@@ -12,6 +12,14 @@ This HTML page is for the administrator dashboard form, using Jinja2 and py Flas
 {% block extra_css %}
 <style>
     /* Dashboard-specific styles only */
+    
+    /* Override Bootstrap container to use full width with minimal padding */
+    .container-fluid {
+        max-width: 98%; /* Use 98% of viewport width instead of default ~1140px */
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+    
     .stats-panel {
         position: sticky;
         top: 20px;
@@ -42,15 +50,49 @@ This HTML page is for the administrator dashboard form, using Jinja2 and py Flas
         border-radius: 10px;
         padding: 20px;
     }
+    
+    /* Improved table layout for AI prediction column */
+    .table-responsive {
+        overflow-x: auto;
+    }
+    
+    .patient-table {
+        min-width: 1200px;
+        font-size: 0.875rem;
+    }
+    
+    .patient-table th,
+    .patient-table td {
+        padding: 0.5rem;
+        white-space: nowrap;
+    }
+    
+    /* Column width adjustments for better space utilization */
+    .patient-table th:nth-child(1), .patient-table td:nth-child(1) { width: 4%; }  /* ID */
+    .patient-table th:nth-child(2), .patient-table td:nth-child(2) { width: 4%; }  /* Gender */
+    .patient-table th:nth-child(3), .patient-table td:nth-child(3) { width: 4%; }  /* Age */
+    .patient-table th:nth-child(4), .patient-table td:nth-child(4) { width: 7%; }  /* HTN */
+    .patient-table th:nth-child(5), .patient-table td:nth-child(5) { width: 7%; }  /* Heart */
+    .patient-table th:nth-child(6), .patient-table td:nth-child(6) { width: 7%; }  /* Glucose */
+    .patient-table th:nth-child(7), .patient-table td:nth-child(7) { width: 5%; }  /* BMI */
+    .patient-table th:nth-child(8), .patient-table td:nth-child(8) { width: 8%; }  /* Smoking */
+    .patient-table th:nth-child(9), .patient-table td:nth-child(9) { width: 6%; }  /* Stroke */
+    .patient-table th:nth-child(10), .patient-table td:nth-child(10) { 
+        width: 12%; 
+        text-align: center;
+    }  /* AI Prediction */
+    .patient-table th:nth-child(11), .patient-table td:nth-child(11) { width: 10%; }  /* Actions */
 </style>
 {% endblock %}
+
 <!-- (Anthropic, 2025) -->
 {% block content %}
-<div class="row mb-3">
-    <div class="col-12">
-        <h2 class="mb-3">
-            <i class="fas fa-chart-line"></i> Patient Records Dashboard
-        </h2>
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col-12">
+            <h2 class="mb-3">
+                <i class="fas fa-chart-line"></i> Patient Records Dashboard
+            </h2>
         <div class="mb-3">
             <a href="{{ url_for('crud.create_patient') }}" class="btn btn-success">
                 <i class="fas fa-plus-circle"></i> New Patient Record
@@ -64,7 +106,7 @@ This HTML page is for the administrator dashboard form, using Jinja2 and py Flas
 
 <div class="row">
     <!-- Left Panel: Statistics and Visualizations, (Anthropic, 2025). -->
-    <div class="col-lg-4 col-md-12">
+    <div class="col-lg-3 col-md-12">
         <div class="stats-panel">
             {% if stats and stats.total_records > 0 %}
             <!-- Total Records Card -->
@@ -74,19 +116,36 @@ This HTML page is for the administrator dashboard form, using Jinja2 and py Flas
                 <small>Patients in database</small>
             </div>
             
-            <!-- Stroke Risk Overview Card, (Anthropic, 2025). -->
+            <!-- Stroke Risk Overview Card with AI Predictions, (Anthropic, 2025). -->
             <div class="card mb-3">
                 <div class="card-header bg-danger text-white">
-                    <i class=""></i> Stroke Risk Overview
+                    <i class="fas fa-heartbeat"></i> Stroke Risk Analysis
                 </div>
                 <div class="card-body">
+                    <h6 class="text-center mb-3">Historical Records</h6>
                     <div class="chart-container">
                         <canvas id="strokeChart"></canvas>
                     </div>
                     <div class="text-center mt-2">
-                        <span class="badge bg-danger">{{ stats.stroke_count }} patients ({{ stats.stroke_percentage }}%)</span>
-                        <span class="badge bg-success">{{ stats.no_stroke_count }} patients ({{ stats.no_stroke_percentage }}%)</span>
+                        <span class="badge bg-danger">{{ stats.stroke_count }} confirmed strokes ({{ stats.stroke_percentage }}%)</span>
+                        <span class="badge bg-success">{{ stats.no_stroke_count }} no stroke history ({{ stats.no_stroke_percentage }}%)</span>
                     </div>
+                    
+                    {% if model_metadata and stats.ai_predictions %}
+                    <hr class="my-3">
+                    <h6 class="text-center mb-3">AI Risk Assessment (Current Database)</h6>
+                    <div class="chart-container">
+                        <canvas id="aiPredictionChart"></canvas>
+                    </div>
+                    <div class="text-center mt-2">
+                        <span class="badge bg-danger">{{ stats.ai_predictions.high_risk_count }} high risk predictions</span>
+                        <span class="badge bg-warning">{{ stats.ai_predictions.moderate_risk_count }} moderate risk</span>
+                        <span class="badge bg-success">{{ stats.ai_predictions.low_risk_count }} low risk</span>
+                    </div>
+                    <small class="text-muted d-block mt-2 text-center">
+                        <i class="fas fa-info-circle"></i> AI predictions based on {{ "%.2f"|format(model_metadata.accuracy * 100) }}% accurate model
+                    </small>
+                    {% endif %}
                 </div>
             </div>
             
@@ -152,6 +211,30 @@ This HTML page is for the administrator dashboard form, using Jinja2 and py Flas
                     </div>
                 </div>
             </div>
+
+            {% if model_metadata and model_metadata.accuracy %}
+            <!-- AI Model Performance Card -->
+            <div class="card mb-3">
+                <div class="card-header bg-success text-white">
+                    <i class="fas fa-robot"></i> AI Model Performance
+                </div>
+                <div class="card-body">
+                    <h6 class="text-center mb-3">SVM Stroke Prediction Model</h6>
+                    <div class="chart-container" style="height: 200px;">
+                        <canvas id="modelAccuracyChart"></canvas>
+                    </div>
+                    <div class="mt-3">
+                        <small class="d-block"><strong>Accuracy:</strong> {{ "%.4f"|format(model_metadata.accuracy * 100) }}%</small>
+                        <small class="d-block"><strong>Precision:</strong> {{ "%.4f"|format(model_metadata.precision * 100) }}%</small>
+                        <small class="d-block"><strong>Recall:</strong> {{ "%.4f"|format(model_metadata.recall * 100) }}%</small>
+                        <small class="d-block"><strong>F1-Score:</strong> {{ "%.4f"|format(model_metadata.f1_score * 100) }}%</small>
+                    </div>
+                    <small class="text-muted d-block mt-2">
+                        <i class="fas fa-info-circle"></i> Model trained using Random Oversampling + GridSearchCV
+                    </small>
+                </div>
+            </div>
+            {% endif %}
             
             {% else %}
             <div class="alert alert-info">
@@ -162,7 +245,7 @@ This HTML page is for the administrator dashboard form, using Jinja2 and py Flas
     </div>
     
     <!-- Right Panel: Patient Records List, (Anthropic, 2025). -->
-    <div class="col-lg-8 col-md-12">
+    <div class="col-lg-9 col-md-12">
         <div class="records-panel">
             <!-- Search and Filter Card, (Anthropic, 2025). -->
             <div class="card mb-4">
@@ -215,6 +298,9 @@ This HTML page is for the administrator dashboard form, using Jinja2 and py Flas
                                 <th>BMI</th>
                                 <th>Smoking</th>
                                 <th>Stroke</th>
+                                {% if model_metadata %}
+                                <th><i class=""></i> AI Risk % = confidence</th>
+                                {% endif %}
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -266,6 +352,25 @@ This HTML page is for the administrator dashboard form, using Jinja2 and py Flas
                                         <span class="badge bg-success">No</span>
                                     {% endif %}
                                 </td>
+                                {% if model_metadata and record.ai_prediction %}
+                                <td>
+                                    {% if record.ai_prediction.prediction == 1 %}
+                                        <span class="badge bg-danger" title="Risk Level: {{ record.ai_prediction.risk_level|capitalize }}">
+                                            <i class="fas fa-exclamation-triangle"></i> High Risk
+                                        </span>
+                                        <small class="d-block text-muted">{{ record.ai_prediction.confidence }}%</small>
+                                    {% elif record.ai_prediction.prediction == 0 %}
+                                        <span class="badge bg-success" title="Risk Level: {{ record.ai_prediction.risk_level|capitalize }}">
+                                            <i class="fas fa-check-circle"></i> Low Risk
+                                        </span>
+                                        <small class="d-block text-muted">{{ 100 - record.ai_prediction.confidence }}%</small>
+                                    {% else %}
+                                        <span class="badge bg-secondary">
+                                            <i class="fas fa-question-circle"></i> N/A
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                {% endif %}
                                 <td>
                                     <div class="btn-group btn-group-sm" role="group">
                                         <a href="{{ url_for('crud.view_patient', patient_id=record._id) }}" 
@@ -384,12 +489,12 @@ This HTML page is for the administrator dashboard form, using Jinja2 and py Flas
     Chart.defaults.font.family = 'Arial, sans-serif';
     Chart.defaults.color = '#666';
     
-    // Stroke Distribution Pie Chart, (Anthropic, 2025).
+    // Stroke Distribution Pie Chart (Historical), (Anthropic, 2025).
     const strokeCtx = document.getElementById('strokeChart').getContext('2d');
     new Chart(strokeCtx, {
         type: 'doughnut',
         data: {
-            labels: ['Stroke', 'No Stroke'],
+            labels: ['Confirmed Stroke', 'No Stroke History'],
             datasets: [{
                 data: [{{ stats.stroke_count }}, {{ stats.no_stroke_count }}],
                 backgroundColor: ['#e74c3c', '#27ae60'],
@@ -413,10 +518,60 @@ This HTML page is for the administrator dashboard form, using Jinja2 and py Flas
                             return `${label}: ${value} (${percentage}%)`;
                         }
                     }
+                },
+                title: {
+                    display: true,
+                    text: 'Historical Stroke Records',
+                    font: { size: 14 }
                 }
             }
         }
     });
+    
+    {% if stats and stats.total_records > 0 %}
+    // AI Prediction Risk Distribution Chart
+    const aiPredCtx = document.getElementById('aiPredictionChart').getContext('2d');
+    new Chart(aiPredCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['High Risk', 'Moderate Risk', 'Low Risk'],
+            datasets: [{
+                data: [
+                    {{ stats.ai_predictions.high_risk_count }}, 
+                    {{ stats.ai_predictions.moderate_risk_count }}, 
+                    {{ stats.ai_predictions.low_risk_count }}
+                ],
+                backgroundColor: ['#e74c3c', '#f39c12', '#27ae60'],
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.label || '';
+                            let value = context.parsed || 0;
+                            let percentage = ((value / {{ stats.total_records }}) * 100).toFixed(1);
+                            return `${label}: ${value} patients (${percentage}%)`;
+                        }
+                    }
+                },
+                title: {
+                    display: true,
+                    text: 'AI Risk Predictions',
+                    font: { size: 14 }
+                }
+            }
+        }
+    });
+    {% endif %}
     
     // Gender Distribution Pie Chart, (Anthropic, 2025).
     const genderCtx = document.getElementById('genderChart').getContext('2d');
@@ -524,7 +679,54 @@ This HTML page is for the administrator dashboard form, using Jinja2 and py Flas
             }
         }
     });
+    
+    {% if model_metadata and model_metadata.accuracy %}
+    // AI Model Performance Gauge Chart
+    const modelCtx = document.getElementById('modelAccuracyChart').getContext('2d');
+    new Chart(modelCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Accuracy', 'Error'],
+            datasets: [{
+                data: [
+                    {{ model_metadata.accuracy * 100 }}, 
+                    {{ (1 - model_metadata.accuracy) * 100 }}
+                ],
+                backgroundColor: ['#27ae60', '#e74c3c'],
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            rotation: -90,
+            circumference: 180,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.label || '';
+                            let value = context.parsed || 0;
+                            return `${label}: ${value.toFixed(4)}%`;
+                        }
+                    }
+                },
+                title: {
+                    display: true,
+                    text: '{{ "%.4f"|format(model_metadata.accuracy * 100) }}% Accuracy',
+                    font: {
+                        size: 16,
+                        weight: 'bold'
+                    }
+                }
+            }
+        }
+    });
+    {% endif %}
     {% endif %}
 </script>
 {% endblock %}
-

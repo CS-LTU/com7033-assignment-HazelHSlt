@@ -1,11 +1,11 @@
 # AI declaration:
 # Github copilot was used for portions of the planning, research, feedback and editing of the software artefact. Mostly utilised for syntax, logic and error checking with ChatGPT and Claude Sonnet 4.5 used as the models.
 
-''' User and Administrator Models module.
+""" User and Administrator Models module.
 
 This module defines two models, used for seperating both the "user" and 
 "admin" authentication and audit logs into their own databases for additional security.
-'''
+"""
 
 from datetime import datetime
 from flask_login import UserMixin
