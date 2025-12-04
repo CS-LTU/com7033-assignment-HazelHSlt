@@ -53,7 +53,7 @@ def load_svm_model(): # (Anthropic, 2025)
             return None, None
 
         # Signature verified; unpickle the byte payload.
-        model_data = pickle.loads(data_bytes)  # nosec: B301 -- HMAC-verified model file
+        model_data = pickle.loads(data_bytes)  # nosec: B301
         
         _cached_svm_model = model_data.get('model')
         _model_metadata = {

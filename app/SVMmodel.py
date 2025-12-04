@@ -541,7 +541,7 @@ class StrokeSVMModel: # (Anthropic, 2025)
             raise ValueError("Model signature mismatch; refusing to load model")
 
         # Safe to unpickle now (integrity & provenance enforced).
-        model_data = pickle.loads(data_bytes)  # nosec: B301 -- signature verified via HMAC
+        model_data = pickle.loads(data_bytes)  # nosec: B301
 
         self.model = model_data['model']
         self.best_params = model_data['best_params']
