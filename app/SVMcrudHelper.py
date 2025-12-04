@@ -5,7 +5,7 @@
 
 Provides functions to load the trained SVM model, preprocess patient data,
 and generate real-time stroke risk predictions for the admin dashboard.
-""""
+"""
 
 import os
 import pickle

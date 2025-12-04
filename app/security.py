@@ -451,44 +451,46 @@ def send_2fa_code(email, code): # (Anthropic, 2025)
     from app import mail
     from flask_mail import Message
     
-    # Check if email is configured.
-    if not current_app.config.get('MAIL_USERNAME') or not current_app.config.get('MAIL_PASSWORD'):
-        current_app.logger.warning("Email not configured, using console output only")
-        print(f"\n{'='*70}")
-        print(f"2FA Code for {email}: {code}")
-        print(f"{'='*70}\n")
-        
-        # Write to file.
-        try:
-            import os
-            admin_login_file = 'Admin_Login.txt'
-            existing_content = []
-            if os.path.exists(admin_login_file):
-                with open(admin_login_file, 'r') as f:
-                    existing_content = f.readlines()
+    # Only execute this block if environment is set to 'development'
+    if current_app.config.get('ENV') == 'development':
+        # Check if email is configured.
+        if not current_app.config.get('MAIL_USERNAME') or not current_app.config.get('MAIL_PASSWORD'):
+            current_app.logger.warning("Email not configured, using console output only")
+            print(f"\n{'='*70}")
+            print(f"2FA Code for {email}: {code}")
+            print(f"{'='*70}\n")
             
-            with open(admin_login_file, 'w') as f:
-                for line in existing_content:
-                    if not line.startswith('2FA Code:'):
-                        f.write(line)
+            # Write to file.
+            try:
+                import os
+                admin_login_file = 'Admin_Login.txt'
+                existing_content = []
+                if os.path.exists(admin_login_file):
+                    with open(admin_login_file, 'r') as f:
+                        existing_content = f.readlines()
                 
-                if existing_content and not existing_content[-1].startswith('='):
-                    f.write(f"2FA Code: {code} (expires in 10 minutes)\n")
-                    f.write("="*70 + "\n")
-                elif not existing_content:
-                    f.write("="*70 + "\n")
-                    f.write(f"2FA Code: {code} (expires in 10 minutes)\n")
-                    f.write("="*70 + "\n")
-                else:
-                    f.write(f"2FA Code: {code} (expires in 10 minutes)\n")
-                    f.write(existing_content[-1])
+                with open(admin_login_file, 'w') as f:
+                    for line in existing_content:
+                        if not line.startswith('2FA Code:'):
+                            f.write(line)
+                    
+                    if existing_content and not existing_content[-1].startswith('='):
+                        f.write(f"2FA Code: {code} (expires in 10 minutes)\n")
+                        f.write("="*70 + "\n")
+                    elif not existing_content:
+                        f.write("="*70 + "\n")
+                        f.write(f"2FA Code: {code} (expires in 10 minutes)\n")
+                        f.write("="*70 + "\n")
+                    else:
+                        f.write(f"2FA Code: {code} (expires in 10 minutes)\n")
+                        f.write(existing_content[-1])
+                
+                current_app.logger.info(f"2FA code written to {admin_login_file}")
+            except Exception as file_error:
+                current_app.logger.warning(f"Could not write 2FA code to file: {file_error}")
             
-            current_app.logger.info(f"2FA code written to {admin_login_file}")
-        except Exception as file_error:
-            current_app.logger.warning(f"Could not write 2FA code to file: {file_error}")
-        
-        # Return True to continue the flow (development mode).
-        return True
+            # Return True to continue the flow (development mode).
+            return True
     
     try:
         # Create the email message.

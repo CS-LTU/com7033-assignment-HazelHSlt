@@ -30,35 +30,27 @@ This HTML page for the front page or home screen, using Jinja2 and py Flask temp
         <!-- The card that displays the application's functionality, (Anthropic, 2025). -->
         <div class="card"> 
             <div class="card-header bg-secondary">
-                <i class="fas fa-info-circle"></i> Functionality:
+                <i class="fas fa-info-circle"></i> About:
             </div>
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-6">
                         <ul class="list-unstyled">
-                            <li><i class=""></i> User login and registration, with a seperate database for site users and audit logs from the patient records. <br> Full CRUD actions on provided patient records .CSV file, with search functionality and encryption at rest for the patient records database, SQLite was used for the user side while mongoDB for the records.</li>
+                            <li><i class=""></i>
+                                Welcome to this Healthcare Records Manager application. <br><br>
+                                This platform is designed to securely manage and store patient healthcare records, 
+                                for use in stroke prediction AI modelling, to help try and find new ways to improve outcomes for participating patients. <br><br>
+                                The data collected on each patient is strictly confidential and is protected in accordance with both GDPR regulations and NHS data security standards.
+                                Along with strong security developed techniques to ensure even in the event of a data breach, patient data remains protected. <br><br>
+                            </li>
                         </ul>
                     </div>
                     <div class="col-md-6">
                         <ul class="list-unstyled">
                             <li><i class=""></i>
-                                Flask==3.0.0 <br>
-                                Flask-SQLAlchemy==3.1.1 <br>
-                                Flask-WTF==1.2.1 <br>
-                                Flask-Login==0.6.3 <br>
-                                Flask-Bcrypt==1.0.1 <br>
-                                Flask-Talisman==1.1.0 <br>
-                                Flask-Limiter==3.5.0 <br>
-                                pymongo==4.6.1 <br>
-                                bleach==6.1.0 <br>
-                                email-validator==2.1.0 <br>
-                                cryptography==41.0.7 <br>
-                                python-dotenv==1.0.0 <br>
-                                WTForms==3.1.1 <br>
-                                # Testing dependencies <br>
-                                pytest==7.4.3 <br>
-                                pytest-cov==4.1.0 <br>
-                                pytest-flask==1.3.0 <br>
+                                Please use the login or registration buttons bellow, or at the top right of the page to access this application. 
+                                If you are a new user, you will need a valid patient ID number and email address to complete the registration process. <br><br>
+                                Thank you for using this application, have a great day!
                         </ul>
                     </div>
                 </div>
@@ -73,7 +65,11 @@ This HTML page for the front page or home screen, using Jinja2 and py Flask temp
                 <div class="row">
                     <div class="col-md-12">
                         <ul class="list-unstyled">
-                            <li><i class=""></i> Patients have the right under GDPR to have their information deleted when requested, have their sensitive medical data secure along with any identifiable data too. <br> Write something about the OWASP and NHS standards here, and maybe testing? idk.</li>
+                            <li><i class=""></i> 
+                                This application is complient with GDPR regulations, NHS data security standards and the 
+                                "Open Worldwide Application Security Project" (OWASP) guidelines. <br><br>
+                                Including multiple security testing techniques inlcuding with OWASP's ZAP toolkit.
+                            </li>
                         </ul>
                     </div>
                     <div class="col-md-6">

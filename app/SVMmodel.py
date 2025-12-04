@@ -197,8 +197,8 @@ class StrokeSVMModel: # (Anthropic, 2025)
         
         # Parameter grid.
         param_grid = {
-            'C': [1, 10, 100],
-            'gamma': ['scale', 0.1],
+            'C': [1, 10, 100], # change these to alter performance, reference paper used: [0.1, 1, 10, 100, 1000])
+            'gamma': ['scale', 0.1], # and: [‘scale’, ‘auto’, 0.01, 0.1, 1]), which is more appropriate for larger datasets.
             'kernel': ['rbf', 'linear'],
             'class_weight': [None, 'balanced']
         }
@@ -210,13 +210,7 @@ class StrokeSVMModel: # (Anthropic, 2025)
         total_combinations = np.prod([len(v) for v in param_grid.values()])
         total_fits = total_combinations * 10
         print(f"\nTotal combinations to evaluate: {total_combinations}")
-        print(f"Total fits (10-fold CV): {total_fits}")
-        print(f"\nEstimated time: 5-15 minutes")
-        print(f"Your CPU: AMD Ryzen 9 5900X (24 threads)")
         print(f"\nProgress tracking:")
-        print(f"  • Each combination tests 10 folds")
-        print(f"  • Running in parallel across all CPU cores")
-        print(f"  • Updates appear as [Parallel(n_jobs=-1)] messages below\n")
         
         # Custom scoring function to track progress
         from sklearn.model_selection import cross_validate
