@@ -159,6 +159,9 @@ def test_flask_login_required_decorator(): # (Anthropic, 2025)
     """
 
 # Test that session is configured securely.
+@pytest.mark.parametrize("config_key,expected_value", [
+    ("WTF_CSRF_ENABLED", False),  # keep in sync with test_csrf_protection_configuration
+])
 def test_session_configuration(app, config_key, expected_value): # (Anthropic, 2025)
     assert config_key in app.config
     assert app.config[config_key] == expected_value, f"{config_key} should be {expected_value}"

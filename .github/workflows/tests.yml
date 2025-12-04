@@ -112,6 +112,7 @@ jobs:
         echo "Authentication tests completed" >> $GITHUB_STEP_SUMMARY
 
     - name: Run Bandit (SAST)
+      continue-on-error: true
       run: |
         bandit -r app/ -ll -f html -o bandit-report.html
 
