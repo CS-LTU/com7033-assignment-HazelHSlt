@@ -3,6 +3,10 @@
 
 # (Anthropic, 2025)
 name: Healthcare Web App Tests
+permissions:
+  contents: read
+  id-token: write
+  packages: read
 on:
   push:
     branches: [ main, master ]
@@ -21,7 +25,7 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     
     - name: Set up environment variables
       env:
@@ -41,6 +45,12 @@ jobs:
         else
           echo "SECRET_KEY=$SECRET_KEY_SECRET" >> $GITHUB_ENV
         fi
+        
+        # Mask the values so they can't leak in logs
+        # (masking uses the workflow command; values are read from the environment we just set)
+        # Note: masking empty values is harmless.
+        echo "::add-mask::${ENCRYPTION_KEY}"
+        echo "::add-mask::${SECRET_KEY}"
         
         # Set Flask environment
         echo "FLASK_ENV=testing" >> $GITHUB_ENV
