@@ -17,14 +17,13 @@ sys.path.insert(0, project_root)
 # Set up Flask app context for database access
 os.environ['FLASK_ENV'] = 'development'
 
-def main():
+def main(): # (Anthropic, 2025)
     from app import create_app
     from app.SVMmodel import StrokeSVMModel
     from app.DataProcessing import StrokeDataProcessor
     
     print("="*70)
-    print("SVM STROKE PREDICTION MODEL TRAINING")
-    print("Following Research Paper Methodology")
+    print("SVM Stroke Prediction Model Training")
     print("="*70)
     
     # Create Flask app context
@@ -85,15 +84,14 @@ def main():
             processor.close_connection()
             
             print("\n" + "="*70)
-            print("TRAINING COMPLETE!")
+            print("Training Complete!")
             print("="*70)
             print(f"\nFinal Model Performance:")
             print(f"  Accuracy: {svm_trainer.metrics['after_balancing']['accuracy']*100:.4f}%")
-            print(f"  Target from paper: 99.99%")
             
         except Exception as e:
             print(f"\n{'='*70}")
-            print(f"ERROR OCCURRED")
+            print(f"Error Occurred")
             print(f"{'='*70}")
             print(f"Error: {e}")
             import traceback

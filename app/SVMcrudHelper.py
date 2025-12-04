@@ -11,6 +11,8 @@ import os
 import pickle
 import numpy as np
 import warnings
+import hmac
+import hashlib
 from flask import current_app
 
 # Suppress sklearn feature name warnings
@@ -23,7 +25,7 @@ _model_metadata = None
 def load_svm_model(): # (Anthropic, 2025)
     global _cached_svm_model, _model_metadata
     
-    # Return cached model if available
+    # Return cached model if available.
     if _cached_svm_model is not None:
         return _cached_svm_model, _model_metadata
     
@@ -33,9 +35,25 @@ def load_svm_model(): # (Anthropic, 2025)
         current_app.logger.warning(f"SVM model not found at {model_path}")
         return None, None
     
-    try:
+    try: # Enforce HMAC signature verification for model integrity to prevent loading tampered models from executing untrusted code.
+        sig_path = f"{model_path}.sig"
+        if not os.path.exists(sig_path):
+            current_app.logger.error(f"SVM model signature missing: {sig_path}; refusing to load unsigned model")
+            return None, None
+
         with open(model_path, 'rb') as f:
-            model_data = pickle.load(f)
+            data_bytes = f.read()
+        with open(sig_path, 'r') as sf:
+            expected_sig = sf.read().strip()
+
+        secret = os.environ.get('SECRET_KEY', '')
+        calc_sig = hmac.new(secret.encode('utf-8'), data_bytes, hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(calc_sig, expected_sig):
+            current_app.logger.error("SVM model signature mismatch; refusing to load model")
+            return None, None
+
+        # Signature verified; unpickle the byte payload.
+        model_data = pickle.loads(data_bytes)  # nosec: B301 -- HMAC-verified model file
         
         _cached_svm_model = model_data.get('model')
         _model_metadata = {
