@@ -15,6 +15,7 @@ from app.models import User, AuditLog
 from cryptography.fernet import Fernet
 from apscheduler.schedulers.background import BackgroundScheduler
 import subprocess
+from flask import request
 
 # makes a secret key for Flask-WTF, used for SCRF tokens and secure session handling.
 def generate_secret_key(): # (Anthropic, 2025)
@@ -351,11 +352,77 @@ def main(): # (Anthropic, 2025)
     # Initialize database.
     initialize_database(app)
     
-    # Schedule backup every 24 hours
-    scheduler = BackgroundScheduler()
-    scheduler.add_job(run_backup_script, 'interval', hours=24)
-    scheduler.start()
+    # Minimal centralized mitigation for passive header (findings from ZAP/DAST).
+    def _set_security_headers(response):
+        # Remove server fingerprinting header (Werkzeug sets Server by default).
+        response.headers.pop('Server', None)
+        # Content Security Policy: allow local content and the CDNs used by the app.
+        csp = (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
+            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
+            "font-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net data:; "
+            "img-src 'self' data:; "
+            "object-src 'none'; "
+            "frame-ancestors 'none';"
+        )
+        response.headers.setdefault('Content-Security-Policy', csp)
+
+        # Clickjacking protection for older browsers.
+        response.headers.setdefault('X-Frame-Options', 'DENY')
+
+        # Prevent MIME sniffing by browsers.
+        response.headers.setdefault('X-Content-Type-Options', 'nosniff')
+
+        # Conservative referrer policy.
+        response.headers.setdefault('Referrer-Policy', 'no-referrer-when-downgrade')
+
+        # Minimal permissions policy.
+        response.headers.setdefault('Permissions-Policy', 'geolocation=()')
+
+        # Enable HSTS only in production environments.
+        if app.config.get('ENV') == 'production':
+            response.headers.setdefault(
+                'Strict-Transport-Security', 'max-age=31536000; includeSubDomains'
+            )
+
+        # Avoid caching for dynamic (non-static) responses.
+        try:
+            if not request.path.startswith('/static'):
+                response.headers.setdefault('Cache-Control', 'no-cache, no-store, must-revalidate')
+                response.headers.setdefault('Pragma', 'no-cache')
+                response.headers.setdefault('Expires', '0')
+        except Exception:
+            # Be conservative if request path is unavailable.
+            response.headers.setdefault('Cache-Control', 'no-cache, no-store, must-revalidate')
+
+        return response
     
+        """ Recommended security change from ZAP report, headers to be set on an HTTP response.
+
+        This helper applies a set of HTTP headers intended to reduce passive risks such as 
+        CSP, clickjacking, MIME sniffing, referrer policy, permissions and cache-control. 
+        The CSP is intentionally permissive for development (includes common CDNs and allows inline scripts/styles). 
+
+        Args:
+            response: A Flask response object to modify.
+
+        Returns:
+            The same Flask response object with additional security headers set.
+        """
+
+    app.after_request(_set_security_headers)
+    
+    # Schedule backup every 24 hours, and only start the scheduler in the actual server process to avoid duplicate threads, when the Werkzeug reloader spawns child processes on debug startup.
+    scheduler = None
+    if os.environ.get('WERKZEUG_RUN_MAIN') == 'true' or not os.environ.get('FLASK_ENV') == 'development':
+        scheduler = BackgroundScheduler()
+        scheduler.add_job(run_backup_script, 'interval', hours=24)
+        scheduler.start()
+        print("Background scheduler started (main process).")
+    else:
+        print("Skipping scheduler start in reloader process.")
+ 
     # Print startup information, with the localhost URL.
     print("\n" + "="*70)
     print("Application ready")
@@ -378,16 +445,18 @@ def main(): # (Anthropic, 2025)
         print("HTTPS Enabled, using self-signed certificate")
         print("="*70 + "\n")
         
+        # Disable the reloader to avoid duplicated processes/threads on Windows.
         app.run(
             host='127.0.0.1',
             port=5000,
             debug=True,
-            use_reloader=True,
+            use_reloader=False,
             ssl_context='adhoc'  # Auto-generates self-signed certificate.
         )
     except KeyboardInterrupt:
         print("\n\nServer stopped")
-        scheduler.shutdown()
+        if scheduler is not None:
+            scheduler.shutdown()
         
     """
     Enable HTTPS with self-signed certificate, in production SSL certificates are 
